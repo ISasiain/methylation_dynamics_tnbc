@@ -585,6 +585,3 @@ for (file in proximal_files) {
   # Save the summary dataframe to a CSV file
   write.csv(final_summary_df, output_file, row.names = FALSE)
 }
-
-
-
