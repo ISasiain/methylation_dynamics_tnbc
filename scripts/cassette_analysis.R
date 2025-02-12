@@ -171,37 +171,6 @@ for (file in distal_files) {
 }
 
 
-# Genes to cassettes
-
-distal_20 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_20.rds")
-
-betaAdj[names(distal_20$colors)]
-
-unique(unname(genes[names(distal_20$colors[distal_20$colors==1])]))
-
-test <- prcomp((betaAdj[names(distal_20$colors[distal_20$colors==1]),]))
-
-
-fpkm_data["SDK1",]
-
-
-# Annotating FPKM data (example: adding gene symbols)
-# Assuming you have a data frame 'gene_annotations' with gene IDs and symbols
-fpkm_data_annotated <- merge(fpkm_data, gene_annotations, by.x="row.names", by.y="gene_id")
-
-# Subsetting the betaAdj matrix based on the condition
-subset_betaAdj <- betaAdj[names(distal_20$colors[distal_20$colors == 7]),]
-
-# Creating the heatmap with ComplexHeatmap
-Heatmap(subset_betaAdj, 
-        name = "Expression", 
-        row_title = "Genes", 
-        column_title = "Samples", 
-        show_row_names = TRUE, 
-        show_column_names = TRUE,
-        row_names_gp = gpar(fontsize = 10),
-        column_names_gp = gpar(fontsize = 10),
-        top_annotation = HeatmapAnnotation(df = fpkm_data_annotated))
 
 #
 # PROMOTER CASSETTES
@@ -485,10 +454,137 @@ for (file in proximal_files) {
 }
 
 
-# Genes to cassettes
-proximal_15 = readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
+#
+# SUMARIZING CASSETTES
+#
 
-genes[names(proximal_15$colors[proximal_15$colors==5])]
-Heatmap(betaAdj[names(proximal_15$colors[proximal_15$colors==20]),])
+# Distal cassettes
 
-heatmap(betaAdj[names(genes[genes=="PLD5"]),])
+# List all files
+distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+
+# Iterate through files
+for (file in distal_files) {
+  
+  # Getting CpG cassette
+  cpgs_to_cassette <- readRDS(file)$colors
+  
+  # Initialize a list to store summary dataframes
+  summary_list <- list()
+  
+  # Iterate through cassettes
+  for (cassette in unique(cpgs_to_cassette)) {
+    
+    # Select betas for the current cassette
+    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
+    
+    # Calculate column means
+    col_means <- colMeans(betas)
+    
+    # Create a summary dataframe
+    summary_df <- data.frame(Cassette = cassette, t(col_means))
+    
+    # Append to the summary list
+    summary_list[[as.character(cassette)]] <- summary_df
+  }
+  
+  # Combine all summary dataframes into one
+  final_summary_df <- do.call(rbind, summary_list)
+  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
+  
+  # Define the output file name
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/distal_cassettes/summary_of_cassettes/summary_distal_beta_", beta, ".csv")
+  
+  # Save the summary dataframe to a CSV file
+  write.csv(final_summary_df, output_file, row.names = FALSE)
+}
+
+
+# Promoter cassettes
+
+# List all files
+promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+
+# Iterate through files
+for (file in promoter_files) {
+  
+  # Getting CpG cassette
+  cpgs_to_cassette <- readRDS(file)$colors
+  
+  # Initialize a list to store summary dataframes
+  summary_list <- list()
+  
+  # Iterate through cassettes
+  for (cassette in unique(cpgs_to_cassette)) {
+    
+    # Select betas for the current cassette
+    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
+    
+    # Calculate column means
+    col_means <- colMeans(betas)
+    
+    # Create a summary dataframe
+    summary_df <- data.frame(Cassette = cassette, t(col_means))
+    
+    # Append to the summary list
+    summary_list[[as.character(cassette)]] <- summary_df
+  }
+  
+  # Combine all summary dataframes into one
+  final_summary_df <- do.call(rbind, summary_list)
+  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
+  
+  # Define the output file name
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/promoter_cassettes/summary_of_cassettes/summary_promoter_beta_", beta, ".csv")
+  
+  # Save the summary dataframe to a CSV file
+  write.csv(final_summary_df, output_file, row.names = FALSE)
+}
+
+
+# Proximal cassettes
+
+# List all files
+proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+
+# Iterate through files
+for (file in proximal_files) {
+  
+  # Getting CpG cassette
+  cpgs_to_cassette <- readRDS(file)$colors
+  
+  # Initialize a list to store summary dataframes
+  summary_list <- list()
+  
+  # Iterate through cassettes
+  for (cassette in unique(cpgs_to_cassette)) {
+    
+    # Select betas for the current cassette
+    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
+    
+    # Calculate column means
+    col_means <- colMeans(betas)
+    
+    # Create a summary dataframe
+    summary_df <- data.frame(Cassette = cassette, t(col_means))
+    
+    # Append to the summary list
+    summary_list[[as.character(cassette)]] <- summary_df
+  }
+  
+  # Combine all summary dataframes into one
+  final_summary_df <- do.call(rbind, summary_list)
+  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
+  
+  # Define the output file name
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/proximal_cassettes/summary_cassettes/summary_proximal_beta_", beta, ".csv")
+  
+  # Save the summary dataframe to a CSV file
+  write.csv(final_summary_df, output_file, row.names = FALSE)
+}
+
+
+
