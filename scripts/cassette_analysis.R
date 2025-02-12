@@ -1,0 +1,491 @@
+#! usr/bin/Rscript
+
+library(ComplexHeatmap)
+library(ggplot2)
+
+#
+# LOADING DSATA
+#
+
+# Loading betas
+load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
+ 
+# Load annotation file
+load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+rownames(x) <- x$PD_ID
+
+# Loading gene expression
+fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
+
+# Epitype annotations
+my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
+
+# Generate obkects for genes linked to CpGs
+genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
+  if (grepl("\\|", x)) {
+    strsplit(x, "\\|")[[1]][2]
+  } else {
+    x
+  }
+})
+
+names(genes) <- annoObj$illuminaID
+
+#
+# DISTAL CASSETTES
+#
+
+# List all files
+distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+
+# Initialize an empty data frame
+summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
+
+for (file in distal_files) {
+  
+  # Getting beta
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Analysing cassettes
+  my_data <- readRDS(file)$colors
+  
+  # Exclude cassette 0
+  my_data <- my_data[my_data != 0]
+  
+  num_cassettes <- length(unique(unname(my_data)))
+  mean_cassette_length <- mean(table(my_data))
+  
+  # Appending to df
+  summary_df <- rbind(summary_df, data.frame(beta = beta, num_cassettes = num_cassettes, mean_cassette_length = mean_cassette_length))
+}
+
+# Convert beta to a factor with levels in the desired order
+summary_df$beta <- factor(summary_df$beta, levels = c(5, 8, 10, 15, 20, 25))
+
+# Create the plot
+ggplot(summary_df, aes(x = beta)) +
+  geom_bar(aes(y = num_cassettes), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_point(aes(y = mean_cassette_length * 25), color = "red", size = 3) +  # Adjust scaling factor as needed
+  geom_line(aes(y = mean_cassette_length * 25, group = 1), color = "red", size = 1) +  # Adjust scaling factor as needed
+  labs(title = "Distal cassettes (Var > 0.1)",
+       x = "Beta",
+       y = "Number of Cassettes") +
+  scale_y_continuous(limits = c(0, 1050), sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
+  theme_classic()
+
+
+# Plotting first cassettes with annotatios. 
+# List all distal files
+distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+
+# Loop through each file
+for (file in distal_files) {
+  # Extract the beta value from the filename
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Load the corresponding data
+  distal <- readRDS(file)
+  
+  # Define the cassettes to include
+  selected_cassettes <- 1:7
+  
+  # Extract CpGs belonging to each cassette
+  cpg_list <- lapply(selected_cassettes, function(cassette) {
+    names(distal$colors[distal$colors == cassette])
+  })
+  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  
+  # Flatten the list to get selected CpGs
+  selected_CpGs <- unlist(cpg_list)
+  
+  # Subset the adjusted beta values
+  beta_subset <- betaAdj[selected_CpGs, ]
+  
+  # Create a cassette grouping factor
+  cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
+  
+  # Compute CpG counts per cassette
+  cassette_counts <- sapply(cpg_list, length)
+  row_labels <- paste0(selected_cassettes)
+  
+  # Subset row annotation matrix for selected transcription factors
+  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  
+  # Convert to a factor to ensure proper categorical annotation
+  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  
+  # Define color mapping for all TFs (0 = white, 1 = black)
+  tf_colors <- list(
+    SUZ12 = c("0" = "white", "1" = "black"),
+    EZH2  = c("0" = "white", "1" = "black"),
+    FOS   = c("0" = "white", "1" = "black"),
+    STAT3 = c("0" = "white", "1" = "black"),
+    ESR1  = c("0" = "white", "1" = "black"),
+    GATA3 = c("0" = "white", "1" = "black"),
+    FOXA1 = c("0" = "white", "1" = "black")
+  )
+  
+  # Create row annotation object
+  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
+  
+  # Epitype annotations
+  pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
+  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  
+  # Create column annotation object
+  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+                                         TNBC = tnbc_annotation,
+                                         HRD = HRD_annotation,
+                                         Epitype = epi_annotation,
+                                         IM = im_annotation,
+                                         col = list(
+                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                           "IM"=c("Negative"="grey", "Positive"="black"),
+                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  )
+  
+  # Generate heatmap with row annotation
+  heatmap <- Heatmap(beta_subset, 
+                     cluster_rows = FALSE, 
+                     cluster_columns = TRUE, 
+                     show_row_names = FALSE, 
+                     show_column_names = FALSE, 
+                     row_split = cassette_factor, 
+                     row_title = row_labels,  
+                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
+                     top_annotation = column_annotation,
+                     left_annotation = row_annotation,
+                     use_raster = FALSE)
+  
+  # Save the heatmap to a file with double size
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/plots/distal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  draw(heatmap)
+  dev.off()
+}
+
+
+# Genes to cassettes
+
+distal_20 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_20.rds")
+
+betaAdj[names(distal_20$colors)]
+
+genes[names(distal_20$colors[distal_20$colors==7])]
+Heatmap(betaAdj[names(distal_20$colors[distal_20$colors==7]),])
+fpkm_data["SDK1",]
+
+
+# Annotating FPKM data (example: adding gene symbols)
+# Assuming you have a data frame 'gene_annotations' with gene IDs and symbols
+fpkm_data_annotated <- merge(fpkm_data, gene_annotations, by.x="row.names", by.y="gene_id")
+
+# Subsetting the betaAdj matrix based on the condition
+subset_betaAdj <- betaAdj[names(distal_20$colors[distal_20$colors == 7]),]
+
+# Creating the heatmap with ComplexHeatmap
+Heatmap(subset_betaAdj, 
+        name = "Expression", 
+        row_title = "Genes", 
+        column_title = "Samples", 
+        show_row_names = TRUE, 
+        show_column_names = TRUE,
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10),
+        top_annotation = HeatmapAnnotation(df = fpkm_data_annotated))
+
+#
+# PROMOTER CASSETTES
+#
+
+# List all files
+promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+
+# Initialize an empty data frame
+summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
+
+for (file in promoter_files) {
+  
+  # Getting beta
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Analysing cassettes
+  my_data <- readRDS(file)$colors
+  
+  # Exclude cassette 0
+  my_data <- my_data[my_data != 0]
+  
+  num_cassettes <- length(unique(unname(my_data)))
+  mean_cassette_length <- mean(table(my_data))
+  
+  # Appending to df
+  summary_df <- rbind(summary_df, data.frame(beta = beta, num_cassettes = num_cassettes, mean_cassette_length = mean_cassette_length))
+}
+
+# Convert beta to a factor with levels in the desired order
+summary_df$beta <- factor(summary_df$beta, levels = c(5, 8, 10, 15, 20, 25))
+
+# Create the plot
+ggplot(summary_df, aes(x = beta)) +
+  geom_bar(aes(y = num_cassettes), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_point(aes(y = mean_cassette_length * 25), color = "red", size = 3) +  # Adjust scaling factor as needed
+  geom_line(aes(y = mean_cassette_length * 25, group = 1), color = "red", size = 1) +  # Adjust scaling factor as needed
+  labs(title = "Promoter cassettes (Var > 0.05)",
+       x = "Beta",
+       y = "Number of Cassettes") +
+  scale_y_continuous(limits = c(0, 1300), sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
+  theme_classic()
+
+
+# Plotting first cassettes with annotatios. 
+# List all promoter files
+promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+
+# Loop through each file
+for (file in promoter_files) {
+  # Extract the beta value from the filename
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Load the corresponding data
+  promoter <- readRDS(file)
+  
+  # Define the cassettes to include
+  selected_cassettes <- 1:7
+  
+  # Extract CpGs belonging to each cassette
+  cpg_list <- lapply(selected_cassettes, function(cassette) {
+    names(promoter$colors[promoter$colors == cassette])
+  })
+  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  
+  # Flatten the list to get selected CpGs
+  selected_CpGs <- unlist(cpg_list)
+  
+  # Subset the adjusted beta values
+  beta_subset <- betaAdj[selected_CpGs, ]
+  
+  # Create a cassette grouping factor
+  cassette_factor <- factor(promoter$colors[selected_CpGs], levels = selected_cassettes)
+  
+  # Compute CpG counts per cassette
+  cassette_counts <- sapply(cpg_list, length)
+  row_labels <- paste0(selected_cassettes)
+  
+  # Subset row annotation matrix for selected transcription factors
+  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  
+  # Convert to a factor to ensure proper categorical annotation
+  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  
+  # Define color mapping for all TFs (0 = white, 1 = black)
+  tf_colors <- list(
+    SUZ12 = c("0" = "white", "1" = "black"),
+    EZH2  = c("0" = "white", "1" = "black"),
+    FOS   = c("0" = "white", "1" = "black"),
+    STAT3 = c("0" = "white", "1" = "black"),
+    ESR1  = c("0" = "white", "1" = "black"),
+    GATA3 = c("0" = "white", "1" = "black"),
+    FOXA1 = c("0" = "white", "1" = "black")
+  )
+  
+  # Create row annotation object
+  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
+  
+  # Epitype annotations
+  pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
+  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  
+  # Create column annotation object
+  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+                                         TNBC = tnbc_annotation,
+                                         HRD = HRD_annotation,
+                                         Epitype = epi_annotation,
+                                         IM = im_annotation,
+                                         col = list(
+                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                           "IM"=c("Negative"="grey", "Positive"="black"),
+                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  )
+  
+  # Generate heatmap with row annotation
+  heatmap <- Heatmap(beta_subset, 
+                     cluster_rows = FALSE, 
+                     cluster_columns = TRUE, 
+                     show_row_names = FALSE, 
+                     show_column_names = FALSE, 
+                     row_split = cassette_factor, 
+                     row_title = row_labels,  
+                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
+                     top_annotation = column_annotation,
+                     #left_annotation = row_annotation,
+                     use_raster = FALSE)
+  
+  # Save the heatmap to a file with double size
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/plots/promoter_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  draw(heatmap)
+  dev.off()
+}
+
+
+
+
+#
+# PROXIMAL CASSETTES
+#
+
+# List all files
+proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+
+# Initialize an empty data frame
+summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
+
+for (file in proximal_files) {
+  
+  # Getting beta
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Analysing cassettes
+  my_data <- readRDS(file)$colors
+  
+  # Exclude cassette 0
+  my_data <- my_data[my_data != 0]
+  
+  num_cassettes <- length(unique(unname(my_data)))
+  mean_cassette_length <- mean(table(my_data))
+  
+  # Appending to df
+  summary_df <- rbind(summary_df, data.frame(beta = beta, num_cassettes = num_cassettes, mean_cassette_length = mean_cassette_length))
+}
+
+# Convert beta to a factor with levels in the desired order
+summary_df$beta <- factor(summary_df$beta, levels = c(5, 8, 10, 15, 20, 25))
+
+# Create the plot
+ggplot(summary_df, aes(x = beta)) +
+  geom_bar(aes(y = num_cassettes), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_point(aes(y = mean_cassette_length * 25), color = "red", size = 3) +  # Adjust scaling factor as needed
+  geom_line(aes(y = mean_cassette_length * 25, group = 1), color = "red", size = 1) +  # Adjust scaling factor as needed
+  labs(title = "proximal cassettes (Var > 0.05)",
+       x = "Beta",
+       y = "Number of Cassettes") +
+  scale_y_continuous(limits = c(0, 800), sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
+  theme_classic()
+
+
+# Plotting first cassettes with annotatios. 
+# List all proximal files
+proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+
+# Loop through each file
+for (file in proximal_files) {
+  # Extract the beta value from the filename
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  
+  # Load the corresponding data
+  proximal <- readRDS(file)
+  
+  # Define the cassettes to include
+  selected_cassettes <- 1:7
+  
+  # Extract CpGs belonging to each cassette
+  cpg_list <- lapply(selected_cassettes, function(cassette) {
+    names(proximal$colors[proximal$colors == cassette])
+  })
+  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  
+  # Flatten the list to get selected CpGs
+  selected_CpGs <- unlist(cpg_list)
+  
+  # Subset the adjusted beta values
+  beta_subset <- betaAdj[selected_CpGs, ]
+  
+  # Create a cassette grouping factor
+  cassette_factor <- factor(proximal$colors[selected_CpGs], levels = selected_cassettes)
+  
+  # Compute CpG counts per cassette
+  cassette_counts <- sapply(cpg_list, length)
+  row_labels <- paste0(selected_cassettes)
+  
+  # Subset row annotation matrix for selected transcription factors
+  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  
+  # Convert to a factor to ensure proper categorical annotation
+  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  
+  # Define color mapping for all TFs (0 = white, 1 = black)
+  tf_colors <- list(
+    SUZ12 = c("0" = "white", "1" = "black"),
+    EZH2  = c("0" = "white", "1" = "black"),
+    FOS   = c("0" = "white", "1" = "black"),
+    STAT3 = c("0" = "white", "1" = "black"),
+    ESR1  = c("0" = "white", "1" = "black"),
+    GATA3 = c("0" = "white", "1" = "black"),
+    FOXA1 = c("0" = "white", "1" = "black")
+  )
+  
+  # Create row annotation object
+  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
+  
+  # Epitype annotations
+  pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
+  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  
+  # Create column annotation object
+  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+                                         TNBC = tnbc_annotation,
+                                         HRD = HRD_annotation,
+                                         Epitype = epi_annotation,
+                                         IM = im_annotation,
+                                         col = list(
+                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                           "IM"=c("Negative"="grey", "Positive"="black"),
+                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  )
+  
+  # Generate heatmap with row annotation
+  heatmap <- Heatmap(beta_subset, 
+                     cluster_rows = FALSE, 
+                     cluster_columns = TRUE, 
+                     show_row_names = FALSE, 
+                     show_column_names = FALSE, 
+                     row_split = cassette_factor, 
+                     row_title = row_labels,  
+                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
+                     top_annotation = column_annotation,
+                     #left_annotation = row_annotation,
+                     use_raster = FALSE)
+  
+  # Save the heatmap to a file with double size
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/plots/proximal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  draw(heatmap)
+  dev.off()
+}
+
+
+# Genes to cassettes
+proximal_15 = readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
+
+genes[names(proximal_15$colors[proximal_15$colors==5])]
+heatmap(betaAdj[names(proximal_15$colors[proximal_15$colors==5]),])
+
+heatmap(betaAdj[names(genes[genes=="PLD5"]),])
