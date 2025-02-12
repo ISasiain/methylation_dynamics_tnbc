@@ -177,8 +177,11 @@ distal_20 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassette
 
 betaAdj[names(distal_20$colors)]
 
-genes[names(distal_20$colors[distal_20$colors==7])]
-Heatmap(betaAdj[names(distal_20$colors[distal_20$colors==7]),])
+unique(unname(genes[names(distal_20$colors[distal_20$colors==1])]))
+
+test <- prcomp((betaAdj[names(distal_20$colors[distal_20$colors==1]),]))
+
+
 fpkm_data["SDK1",]
 
 
@@ -486,6 +489,6 @@ for (file in proximal_files) {
 proximal_15 = readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
 
 genes[names(proximal_15$colors[proximal_15$colors==5])]
-heatmap(betaAdj[names(proximal_15$colors[proximal_15$colors==5]),])
+Heatmap(betaAdj[names(proximal_15$colors[proximal_15$colors==20]),])
 
 heatmap(betaAdj[names(genes[genes=="PLD5"]),])
