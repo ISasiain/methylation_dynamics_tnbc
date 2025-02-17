@@ -537,7 +537,7 @@ for (file in promoter_files) {
   
   # Define the output file name
   beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
-  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/promoter_cassettes/summary_of_cassettes/summary_promoter_beta_", beta, ".csv")
+  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_promoter_beta_", beta, ".csv")
   
   # Save the summary dataframe to a CSV file
   write.csv(final_summary_df, output_file, row.names = FALSE)
