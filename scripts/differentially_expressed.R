@@ -55,13 +55,28 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-# Example cassette file
+
+
+# PROMOTER
 promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_15.rds")
 
-# Summary cassette file
-summary_prom15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_promoter_beta_15.csv")
+summary_prom15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_15.csv")
 rownames(summary_prom15) <- as.character(summary_prom15$Cassette)
 summary_prom15$Cassette <- NULL
+
+# DISTAL
+distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
+
+summary_dis15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_15.csv")
+rownames(summary_dis15) <- as.character(summary_dis15$Cassette)
+summary_dis15$Cassette <- NULL
+
+# PROXIMAL
+proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
+
+summary_prox15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_15.csv")
+rownames(summary_prox15) <- as.character(summary_prox15$Cassette)
+summary_prox15$Cassette <- NULL
 
 # FPKM counts
 fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
@@ -82,16 +97,143 @@ my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosy
 
 
 #
-# CLUSTERING SAMPLES BASED ON BASAL/NON-BASAL SPLIT. CASSETTE 1
+# CLUSTERING SAMPLES. Basal-NonBasal
 #
 
-# Perform GMM clustering
-gmm_model <- Mclust(summary_prom15["1",], G = 2)  
+# Get CpGs of the proximal, distal and promoter cassettes linked to PAM50 Basal/NonBasal
+my_cpgs_prom <-  c(
+  names(promoter_15$colors)[promoter_15$colors == "1"]
+)
 
-# Get the cluster assignments
-cluster_assignments <- kmeans(t(summary_prom15["1",]), centers = 2)$cluster
+my_cpgs_dis <-  c(
+  names(distal_15$colors)[distal_15$colors == "2"],
+  names(distal_15$colors)[distal_15$colors == "4"]
+)
+
+my_cpgs_prox <- c(
+  names(proximal_15$colors)[proximal_15$colors == "1"],
+  names(proximal_15$colors)[proximal_15$colors == "2"]
+)
+
+my_cpgs_all <- c(
+  names(promoter_15$colors)[promoter_15$colors == "1"],
+  names(proximal_15$colors)[proximal_15$colors == "1"],
+  names(proximal_15$colors)[proximal_15$colors == "2"],
+  names(proximal_15$colors)[proximal_15$colors == "1"],
+  names(proximal_15$colors)[proximal_15$colors == "2"]
+)
+
+# Geenerate data frame to store groups
+groupings_df <- data.frame(matrix(nrow = length(colnames(summary_prox15)), ncol = 5))
+rownames(groupings_df) <- colnames(summary_prox15)
+colnames(groupings_df) <- c("group_prom", "group_dis", "group_prox", "group_all", "PAM50")        
+
+# CLUSTERING IN TWO GROUPS
+
+# PROMOTER
+distance_matrix <- dist(t(betaAdj[my_cpgs_prom,]))
+hc <- hclust(distance_matrix)
+groupings_df$group_prom <- cutree(hc, k = 2)
+
+# DISTAL
+distance_matrix <- dist(t(betaAdj[my_cpgs_dis,]))
+hc <- hclust(distance_matrix)
+groupings_df$group_dis <- cutree(hc, k = 2)
+
+# PROXIMAL
+distance_matrix <- dist(t(betaAdj[my_cpgs_prox,]))
+hc <- hclust(distance_matrix)
+groupings_df$group_prox <- cutree(hc, k = 2)
+
+# ALL
+distance_matrix <- dist(t(betaAdj[my_cpgs_all,]))
+hc <- hclust(distance_matrix)
+groupings_df$group_all <- cutree(hc, k = 2)
+
+#PAM50
+groupings_df$PAM50 <- my_annotations[colnames(betaAdj), "PAM50"]
+
+# Define grouping variables
+group_vars <- c("group_prox", "group_prom", "group_dis", "group_all")
+
+# ANALYSISNG DIFFERENCES IN GROUPINGS
+
+# USING PERCENTAGES
+
+# Generate contingency tables and compute percentages
+summary_list <- lapply(group_vars, function(var) {
+  tbl <- as.data.frame.matrix(table(groupings_df[[var]], groupings_df$PAM50))
+  tbl$Grouping_Method <- var
+  tbl$Group_Value <- rownames(tbl)
+  
+  # Convert counts to percentages (row-wise)
+  tbl[, 1:(ncol(tbl)-2)] <- tbl[, 1:(ncol(tbl)-2)] / rowSums(tbl[, 1:(ncol(tbl)-2)]) * 100
+  
+  tbl
+})
+
+# Combine all tables into one
+summary_table <- do.call(rbind, summary_list)
+
+# Convert to long format for ggplot
+summary_long <- summary_table %>%
+  pivot_longer(cols = -c(Grouping_Method, Group_Value), 
+               names_to = "PAM50", values_to = "Percentage")
+
+# Convert Group_Value to factor for proper ordering
+summary_long$Group_Value <- factor(summary_long$Group_Value)
+
+# Plot the data
+ggplot(summary_long, aes(x = Group_Value, y = Percentage, fill = PAM50)) +
+  geom_bar(stat = "identity", position = "stack") +  # Stacked bar plot
+  facet_wrap(~Grouping_Method, scales = "free_x") +  # One plot per grouping method
+  scale_fill_manual(values = c("Basal" = "red", "Her2" = "pink", "LumA" = "blue",
+                               "LumB" = "purple", "Normal" = "green", "Uncl." = "gray")) +  
+  labs(x = "Group Value", y = "Percentage", fill = "PAM50") +
+  theme_classic()
+
+# USING COUNTS
+
+# Generate contingency tables for each grouping variable against PAM50
+summary_list_counts <- lapply(group_vars, function(var) {
+  tbl <- as.data.frame.matrix(table(groupings_df[[var]], groupings_df$PAM50))
+  tbl$Grouping_Method <- var  # Add column to identify the method
+  tbl$Group_Value <- rownames(tbl)  # Store group value
+  tbl
+})
+
+# Combine all tables into a single data frame
+summary_table_counts <- do.call(rbind, summary_list_counts)
+
+# Reorder columns for readability
+summary_table_counts <- summary_table_counts[, c("Grouping_Method", "Group_Value", colnames(summary_table_counts)[1:(ncol(summary_table_counts) - 2)])]
+
+# Convert to long format for ggplot
+summary_long <- summary_table_counts %>%
+  pivot_longer(cols = -c(Grouping_Method, Group_Value), 
+               names_to = "PAM50", values_to = "Counts")
+
+# Convert Group_Value to factor for proper ordering
+summary_long$Group_Value <- factor(summary_long$Group_Value)
+
+# Plot the data
+ggplot(summary_long, aes(x = Group_Value, y = Counts, fill = PAM50)) +
+  geom_bar(stat = "identity", position = "stack") +  # Stacked bar plot
+  facet_wrap(~Grouping_Method, scales = "free_x") +  # One plot per grouping method
+  scale_fill_manual(values = c("Basal" = "red", "Her2" = "pink", "LumA" = "blue",
+                               "LumB" = "purple", "Normal" = "green", "Uncl." = "gray")) +  
+  labs(x = "Group Value", y = "Percentage", fill = "PAM50") +
+  theme_classic()
 
 
+# Combine all tables into a single data frame
+summary_table <- do.call(rbind, summary_list)
+
+# Reorder columns for readability
+summary_table <- summary_table[, c("Grouping_Method", "Group_Value", colnames(summary_table)[1:(ncol(summary_table) - 2)])]
+
+# Print the final table
+print(summary_table)
 
 
 #
@@ -177,7 +319,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
 
 # HEATMAPS
 
-current_gene_id = "ZDH1"
+current_gene_id = "LDHB"
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
 tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]

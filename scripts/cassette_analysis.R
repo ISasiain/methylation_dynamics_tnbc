@@ -2,6 +2,49 @@
 
 library(ComplexHeatmap)
 library(ggplot2)
+library(stats)
+
+#
+# USER DEFINED FUNCTIONS
+#
+
+# Function to summarize cassettes using the first principal component
+summarize_cassettes <- function(files, output_dir) {
+  for (file in files) {
+    # Getting CpG cassette
+    cpgs_to_cassette <- readRDS(file)$colors
+    
+    # Initialize a list to store summary dataframes
+    summary_list <- list()
+    
+    # Iterate through cassettes
+    for (cassette in unique(cpgs_to_cassette)) {
+      # Select betas for the current cassette
+      betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
+      
+      # Perform PCA and extract the first principal component
+      pca <- prcomp(t(betas), center = TRUE, scale. = TRUE)
+      first_pc <- pca$x[, 1]
+      
+      # Create a summary dataframe
+      summary_df <- data.frame(Cassette = cassette, t(first_pc))
+      
+      # Append to the summary list
+      summary_list[[as.character(cassette)]] <- summary_df
+    }
+    
+    # Combine all summary dataframes into one
+    final_summary_df <- do.call(rbind, summary_list)
+    final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
+    
+    # Define the output file name
+    beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+    output_file <- paste0(output_dir, "/summary_beta_", beta, ".csv")
+    
+    # Save the summary dataframe to a CSV file
+    write.csv(final_summary_df, output_file, row.names = FALSE)
+  }
+}
 
 #
 # LOADING DSATA
@@ -459,129 +502,13 @@ for (file in proximal_files) {
 #
 
 # Distal cassettes
-
-# List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-
-# Iterate through files
-for (file in distal_files) {
-  
-  # Getting CpG cassette
-  cpgs_to_cassette <- readRDS(file)$colors
-  
-  # Initialize a list to store summary dataframes
-  summary_list <- list()
-  
-  # Iterate through cassettes
-  for (cassette in unique(cpgs_to_cassette)) {
-    
-    # Select betas for the current cassette
-    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
-    
-    # Calculate column means
-    col_means <- colMeans(betas)
-    
-    # Create a summary dataframe
-    summary_df <- data.frame(Cassette = cassette, t(col_means))
-    
-    # Append to the summary list
-    summary_list[[as.character(cassette)]] <- summary_df
-  }
-  
-  # Combine all summary dataframes into one
-  final_summary_df <- do.call(rbind, summary_list)
-  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
-  
-  # Define the output file name
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
-  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/distal_cassettes/summary_of_cassettes/summary_distal_beta_", beta, ".csv")
-  
-  # Save the summary dataframe to a CSV file
-  write.csv(final_summary_df, output_file, row.names = FALSE)
-}
-
+summarize_cassettes(distal_files, "/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes")
 
 # Promoter cassettes
-
-# List all files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
-
-# Iterate through files
-for (file in promoter_files) {
-  
-  # Getting CpG cassette
-  cpgs_to_cassette <- readRDS(file)$colors
-  
-  # Initialize a list to store summary dataframes
-  summary_list <- list()
-  
-  # Iterate through cassettes
-  for (cassette in unique(cpgs_to_cassette)) {
-    
-    # Select betas for the current cassette
-    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
-    
-    # Calculate column means
-    col_means <- colMeans(betas)
-    
-    # Create a summary dataframe
-    summary_df <- data.frame(Cassette = cassette, t(col_means))
-    
-    # Append to the summary list
-    summary_list[[as.character(cassette)]] <- summary_df
-  }
-  
-  # Combine all summary dataframes into one
-  final_summary_df <- do.call(rbind, summary_list)
-  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
-  
-  # Define the output file name
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
-  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_promoter_beta_", beta, ".csv")
-  
-  # Save the summary dataframe to a CSV file
-  write.csv(final_summary_df, output_file, row.names = FALSE)
-}
-
+summarize_cassettes(promoter_files, "/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes")
 
 # Proximal cassettes
-
-# List all files
 proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
-
-# Iterate through files
-for (file in proximal_files) {
-  
-  # Getting CpG cassette
-  cpgs_to_cassette <- readRDS(file)$colors
-  
-  # Initialize a list to store summary dataframes
-  summary_list <- list()
-  
-  # Iterate through cassettes
-  for (cassette in unique(cpgs_to_cassette)) {
-    
-    # Select betas for the current cassette
-    betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
-    
-    # Calculate column means
-    col_means <- colMeans(betas)
-    
-    # Create a summary dataframe
-    summary_df <- data.frame(Cassette = cassette, t(col_means))
-    
-    # Append to the summary list
-    summary_list[[as.character(cassette)]] <- summary_df
-  }
-  
-  # Combine all summary dataframes into one
-  final_summary_df <- do.call(rbind, summary_list)
-  final_summary_df <- final_summary_df[order(final_summary_df$Cassette), ]
-  
-  # Define the output file name
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
-  output_file <- paste0("/Users/isasiain/PhD/Projects/project_3/plots/proximal_cassettes/summary_cassettes/summary_proximal_beta_", beta, ".csv")
-  
-  # Save the summary dataframe to a CSV file
-  write.csv(final_summary_df, output_file, row.names = FALSE)
-}
+summarize_cassettes(proximal_files, "/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes")
