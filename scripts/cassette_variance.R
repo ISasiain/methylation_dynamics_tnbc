@@ -18,7 +18,6 @@ promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cass
 # COMPUTE VARIANCE
 #
 
-
 # Total beta variance
 variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 

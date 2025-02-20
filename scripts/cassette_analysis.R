@@ -3,6 +3,7 @@
 library(ComplexHeatmap)
 library(ggplot2)
 library(stats)
+library(tidyr)
 
 #
 # USER DEFINED FUNCTIONS

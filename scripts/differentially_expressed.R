@@ -1,9 +1,9 @@
 #! usr/bin/Rscript
 
-library(mclust)
 library(ComplexHeatmap)
 library(circlize)
 library(ggplot2)
+library(tidyr)
 
 #
 # DEFINING FUNCTIONS
@@ -237,15 +237,96 @@ print(summary_table)
 
 
 #
-# PLOTTING 
+# PLOTTING DIFFERENTIALLY EXPRESSED GENES
 #
 
+# PROMOTER
+
 # Extracting the subset data
-fpkm_subset_1 <- fpkm_data[, names(cluster_assignments)[cluster_assignments == 1]]
-fpkm_subset_2 <- fpkm_data[, names(cluster_assignments)[cluster_assignments == 2]]
+fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prom == 1]]
+fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prom == 2]]
 
 # Identifying genes in cassette 1
 cpgs_in_cassette <- names(promoter_15$colors[promoter_15$colors == 1])
+genes_in_cassette <- unique(genes[cpgs_in_cassette])
+
+# Count the number of CpGs linked to each gene
+cpg_counts <- table(genes[cpgs_in_cassette])
+
+# Initialize results dataframe
+results <- data.frame(
+  Gene = genes_in_cassette,
+  Wilcoxon_p = NA,
+  Bonferroni_p = NA,
+  Log2_fold_change = NA,
+  CpG_Count = NA
+)
+
+# Compute statistics
+for (gene in genes_in_cassette) {
+  if (gene %in% rownames(fpkm_data)) {
+    expr_group1 <- as.numeric(fpkm_subset_1[gene, ])
+    expr_group2 <- as.numeric(fpkm_subset_2[gene, ])
+    
+    # Wilcoxon test
+    test_result <- wilcox.test(expr_group1, expr_group2, exact = FALSE)
+    
+    # Compute median difference
+    log_fold_change <- calculate_logFC(expr_group1, expr_group2)
+    
+    # Store results
+    results[results$Gene == gene, "Wilcoxon_p"] <- test_result$p.value
+    results[results$Gene == gene, "Log2_fold_change"] <- log_fold_change
+  }
+  
+  # Store CpG count for the gene
+  results[results$Gene == gene, "CpG_Count"] <- cpg_counts[gene]
+}
+
+# Apply Bonferroni correction
+results$Bonferroni_p <- p.adjust(results$Wilcoxon_p, method = "bonferroni")
+
+# Sort results by Bonferroni p-value
+results <- results[order(results$Bonferroni_p), ]
+
+
+# VOLCANO PLOT
+
+# Compute -log10(Bonferroni p-value)
+results$neg_log10_p <- -log10(results$Bonferroni_p)
+
+# Define color based on significance
+results$color <- ifelse(results$Bonferroni_p > 0.05, "grey", "blue")
+
+# Volcano plot
+ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, color = color)) +
+  geom_point(alpha = 0.7) +  # Points with transparency
+  geom_text(data = subset(results, Bonferroni_p <= 0.05),  # Show labels only for significant genes
+            aes(label = Gene), vjust = -1, size = 4) +
+  scale_color_manual(values = c("blue", "grey")) +  # Define colors
+  scale_size(range = c(3, 8)) +                     # Adjust point size range
+  theme_classic() +
+  labs(
+    title = "Volcano Plot",
+    x = "Log2 Fold Change",
+    y = "-log10(Bonferroni p-value)",
+    size = "CpG Count",
+    color = "Significance"
+  ) +
+  theme(
+    text = element_text(size = 14),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+
+# PROXIMAL
+
+# Extracting the subset data
+fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 1]]
+fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 2]]
+
+# Identifying genes in cassette 1
+cpgs_in_cassette <- names(proximal_15$colors[(proximal_15$colors == 1) | (proximal_15$colors == 2)])
 genes_in_cassette <- unique(genes[cpgs_in_cassette])
 
 # Count the number of CpGs linked to each gene
@@ -317,9 +398,87 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
   )
 
 
-# HEATMAPS
+# DISTAL
 
-current_gene_id = "LDHB"
+# Extracting the subset data
+fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_dis == 1]]
+fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_dis == 2]]
+
+# Identifying genes in cassette 1
+cpgs_in_cassette <- names(distal_15$colors[(distal_15$colors == 1) | (distal_15$colors == 2)])
+genes_in_cassette <- unique(genes[cpgs_in_cassette])
+
+# Count the number of CpGs linked to each gene
+cpg_counts <- table(genes[cpgs_in_cassette])
+
+# Initialize results dataframe
+results <- data.frame(
+  Gene = genes_in_cassette,
+  Wilcoxon_p = NA,
+  Bonferroni_p = NA,
+  Log2_fold_change = NA,
+  CpG_Count = NA
+)
+
+# Compute statistics
+for (gene in genes_in_cassette) {
+  if (gene %in% rownames(fpkm_data)) {
+    expr_group1 <- as.numeric(fpkm_subset_1[gene, ])
+    expr_group2 <- as.numeric(fpkm_subset_2[gene, ])
+    
+    # Wilcoxon test
+    test_result <- wilcox.test(expr_group1, expr_group2, exact = FALSE)
+    
+    # Compute median difference
+    log_fold_change <- calculate_logFC(expr_group1, expr_group2)
+    
+    # Store results
+    results[results$Gene == gene, "Wilcoxon_p"] <- test_result$p.value
+    results[results$Gene == gene, "Log2_fold_change"] <- log_fold_change
+  }
+  
+  # Store CpG count for the gene
+  results[results$Gene == gene, "CpG_Count"] <- cpg_counts[gene]
+}
+
+# Apply Bonferroni correction
+results$Bonferroni_p <- p.adjust(results$Wilcoxon_p, method = "bonferroni")
+
+# Sort results by Bonferroni p-value
+results <- results[order(results$Bonferroni_p), ]
+
+
+# VOLCANO PLOT
+
+# Compute -log10(Bonferroni p-value)
+results$neg_log10_p <- -log10(results$Bonferroni_p)
+
+# Define color based on significance
+results$color <- ifelse(results$Bonferroni_p > 0.05, "grey", "blue")
+
+# Volcano plot
+ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, color = color)) +
+  geom_point(alpha = 0.7) +  # Points with transparency
+  geom_text(data = subset(results, Bonferroni_p <= 0.05),  # Show labels only for significant genes
+            aes(label = Gene), vjust = -1, size = 4) +
+  scale_color_manual(values = c("blue", "grey")) +  # Define colors
+  scale_size(range = c(3, 8)) +                     # Adjust point size range
+  theme_minimal() +
+  labs(
+    title = "Volcano Plot",
+    x = "Log2 Fold Change",
+    y = "-log10(Bonferroni p-value)",
+    size = "CpG Count",
+    color = "Significance"
+  ) +
+  theme(
+    text = element_text(size = 14),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# HEATMAPS OF PARTICULAR GENES
+
+current_gene_id = "PLEKHB1"
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
 tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
@@ -371,7 +530,6 @@ Heatmap(
   show_row_names = FALSE,
   show_column_names = FALSE,
   show_row_dend = FALSE, 
-  column_split = factor(cluster_assignments),
   top_annotation = top_annotation,
   bottom_annotation = bottom_annotation,
   right_annotation = left_annotation,
@@ -379,4 +537,5 @@ Heatmap(
   clustering_method_columns = "ward.D2",
   name = "Tumor beta"
 )
+
 
