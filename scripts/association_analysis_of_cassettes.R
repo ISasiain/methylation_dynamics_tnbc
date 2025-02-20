@@ -3,10 +3,15 @@
 library(ggplot2)
 library(survival)
 library(survminer)
+library(ggrepel)
+
 
 #
 # LOADING DATA 
 #
+
+# Loading EPIC methylation matrix
+load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
 # Load annotation file
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
@@ -178,17 +183,20 @@ ggplot(plot_data, aes(x = X, y = Y)) +
 # IMPACT IN OUTCOME
 #
 
+IDFS <- x[colnames(prom_cassettes),"IDFS"]
+IDFS_bin <- x[colnames(prom_cassettes),"IDFSbin"]
+
 
 # Define predictor genes
-genes <- c("547", "141", "453", "250")
-gene_names <- c("ZBP1", "GBP4", "NOSTRIN", "PPP1R36")
+cassettes <- c("547", "141", "453", "250")
+cassettes_names <- c("ZBP1", "GBP4", "NOSTRIN", "PPP1R36")
 
 # Initialize a data frame to store results
-results <- data.frame(Gene = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
+results <- data.frame(Cassette = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
 
 # Loop through genes
-for (i in 1:length(genes)) {
-  predictor_values <- as.numeric(prom_cassettes[genes[i], ])
+for (i in 1:length(cassettes)) {
+  predictor_values <- as.numeric(prom_cassettes[cassettes[i], ])
   
   cox_model <- coxph(Surv(IDFS, IDFS_bin) ~ predictor_values)
   model_summary <- summary(cox_model)
@@ -200,15 +208,15 @@ for (i in 1:length(genes)) {
   pvalue <- model_summary$coefficients[,"Pr(>|z|)"]
   
   # Store results
-  results <- rbind(results, data.frame(Gene = gene_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
+  results <- rbind(results, data.frame(Cassette = cassettes_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
 }
 
 # Adjust gene factor order for plotting
-results$Gene <- factor(results$Gene, levels = rev(results$Gene))  # Reverse order for plot
+results$Cassette <- factor(results$Cassette, levels = rev(results$Cassette))  # Reverse order for plot
 
 
 # Forest plot using ggplot2
-ggplot(results, aes(x = Gene, y = HR, ymin = Lower, ymax = Upper)) +
+ggplot(results, aes(x = Cassette, y = HR, ymin = Lower, ymax = Upper)) +
   geom_pointrange(size = 1, color = "blue") +
   geom_hline(yintercept = 1, linetype = "dashed", color = "red") +  # Reference line at HR = 1
   coord_flip() +  # Flip axes for better visualization
@@ -218,4 +226,53 @@ ggplot(results, aes(x = Gene, y = HR, ymin = Lower, ymax = Upper)) +
   theme(axis.text = element_text(size = 12), 
         axis.title = element_text(size = 14)) +
   ggtitle("Univ. Cox Regression of Cassette´s PC1")
+
+
+
+#
+# VOLCANO PLOT OF CASSETTES AND OUTCOME
+#
+
+# Define all cassette genes
+all_cassettes <- rownames(prom_cassettes)
+all_cassettes_names <- all_genes  # Assuming gene names are the same as rownames
+
+# Initialize a data frame to store results
+results <- data.frame(Cassette = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
+
+# Loop through all genes
+for (i in 1:length(all_genes)) {
+  predictor_values <- as.numeric(prom_cassettes[all_cassettes[i], ])
+  
+  cox_model <- coxph(Surv(IDFS, IDFS_bin) ~ predictor_values)
+  model_summary <- summary(cox_model)
+  
+  # Extract HR, confidence intervals, and p-value
+  hr <- model_summary$coefficients[,"exp(coef)"]
+  lower_ci <- model_summary$conf.int[,"lower .95"]
+  upper_ci <- model_summary$conf.int[,"upper .95"]
+  pvalue <- model_summary$coefficients[,"Pr(>|z|)"]
+  
+  # Store results
+  results <- rbind(results, data.frame(Cassette = all_cassettes_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
+}
+
+# FDR correction
+results$pvalue_adj <- p.adjust(results$pvalue, method = "fdr")
+
+# Create volcano plot
+ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
+  geom_point(aes(color = pvalue_adj < 0.05), size = 3) +
+  geom_text_repel() +
+  scale_color_manual(values = c("black", "red")) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "blue") +
+  xlab("Log2 Hazard Ratio") + 
+  ylab("-Log10 Adjusted P-value") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 14)) +
+  ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
+
+genes[names(promoter_15$colors)[promoter_15$colors==183]]
+
 
