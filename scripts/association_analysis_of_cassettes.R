@@ -216,11 +216,11 @@ ggplot(results, aes(x = Tau, y = logP, label = Cassette)) +
 # Assuming your dataframe is named df
 results_sorted <- results[order(-abs(results$Tau)), ]
 
-head(results_sorted)
+head(results_sorted, 20)
 
 proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
 data <- proximal_15$colors
-cpgs <- names(data)[data == 6]
+cpgs <- names(data)[data == 51]
 genes[cpgs]
 
 
@@ -364,6 +364,9 @@ ggplot(results, aes(x = Cassette, y = HR, ymin = Lower, ymax = Upper)) +
 # VOLCANO PLOT OF CASSETTES AND OUTCOME
 #
 
+IDFS <- x[colnames(prom_cassettes),"IDFS"]
+IDFS_bin <- x[colnames(prom_cassettes),"IDFSbin"]
+
 # PROMOTER
 
 # Define all cassette genes
@@ -472,71 +475,7 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-genes[names(promoter_15$colors)[promoter_15$colors==103]]
-results[104,]
-
-# Plotting metastasis type vs cassette 183
-
-metastasis_type <- as.character(x[colnames(prom_cassettes), "Metastasis_type"])
-metastasis_type[is.na(metastasis_type)] <- "NA"  # Convert NA to a string
-boxplot(as.numeric(prom_cassettes["183",]) ~ as.factor(metastasis_type),
-        xlab="Metastasis type",
-        ylab="Cassette PC1",
-        main=paste0("KW p=", round(kruskal.test(as.numeric(prom_cassettes["183", ]) ~ as.factor(metastasis_type))$p.value, 5)),
-        border = "black",  # Dark borders for better contrast
-        las = 1,  # Horizontal axis labels for readability
-        notch = F,  # Add notches for confidence intervals
-        cex.axis = 1.2,  # Increase axis text size
-        cex.lab = 1.4,  # Increase label text size
-        frame = FALSE,  # Remove default box around plot
-        main = "PC1 Cassette 1 across PAM50 Subtypes",  # Add a clear title
-        outpch = 16,  # Use solid circles for outliers
-        outcol = "red"  # Highlight outliers in red
-)
-
-
-
-# Define all cassette genes
-all_cassettes <- rownames(prom_cassettes)
-all_cassettes_names <- all_cassettes # Assuming gene names are the same as rownames
-
-# Initialize a data frame to store results
-results <- data.frame(Cassette = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
-
-# Loop through all genes
-for (i in 1:length(all_cassettes)) {
-  predictor_values <- as.numeric(prom_cassettes[all_cassettes[i], ])
-  
-  cox_model <- coxph(Surv(IDFS, IDFS_bin) ~ predictor_values)
-  model_summary <- summary(cox_model)
-  
-  # Extract HR, confidence intervals, and p-value
-  hr <- model_summary$coefficients[,"exp(coef)"]
-  lower_ci <- model_summary$conf.int[,"lower .95"]
-  upper_ci <- model_summary$conf.int[,"upper .95"]
-  pvalue <- model_summary$coefficients[,"Pr(>|z|)"]
-  
-  # Store results
-  results <- rbind(results, data.frame(Cassette = all_cassettes_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
-}
-
-# FDR correction
-results$pvalue_adj <- p.adjust(results$pvalue, method = "fdr")
-
-# Create volcano plot
-ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
-  geom_point(aes(color = pvalue_adj < 0.05), size = 3) +
-  geom_text_repel() +
-  scale_color_manual(values = c("black", "red")) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "blue") +
-  xlab("Log2 Hazard Ratio") + 
-  ylab("-Log10 Adjusted P-value") +
-  theme_classic() +
-  theme(axis.text = element_text(size = 12), 
-        axis.title = element_text(size = 14)) +
-  ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
-
-genes[names(distal_15$colors)[distal_15$colors==103]]
+genes[names(distal_15$colors)[distal_15$colors==468]]
 results[104,]
 
 
@@ -584,69 +523,3 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
 genes[names(proximal_15$colors)[proximal_15$colors==40]]
-
-# Plotting metastasis type vs cassette 183
-
-metastasis_type <- as.character(x[colnames(prom_cassettes), "Metastasis_type"])
-metastasis_type[is.na(metastasis_type)] <- "NA"  # Convert NA to a string
-boxplot(as.numeric(prom_cassettes["183",]) ~ as.factor(metastasis_type),
-        xlab="Metastasis type",
-        ylab="Cassette PC1",
-        main=paste0("KW p=", round(kruskal.test(as.numeric(prom_cassettes["183", ]) ~ as.factor(metastasis_type))$p.value, 5)),
-        border = "black",  # Dark borders for better contrast
-        las = 1,  # Horizontal axis labels for readability
-        notch = F,  # Add notches for confidence intervals
-        cex.axis = 1.2,  # Increase axis text size
-        cex.lab = 1.4,  # Increase label text size
-        frame = FALSE,  # Remove default box around plot
-        main = "PC1 Cassette 1 across PAM50 Subtypes",  # Add a clear title
-        outpch = 16,  # Use solid circles for outliers
-        outcol = "red"  # Highlight outliers in red
-)
-
-
-
-# Define all cassette genes
-all_cassettes <- rownames(prom_cassettes)
-all_cassettes_names <- all_cassettes # Assuming gene names are the same as rownames
-
-# Initialize a data frame to store results
-results <- data.frame(Cassette = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
-
-# Loop through all genes
-for (i in 1:length(all_cassettes)) {
-  predictor_values <- as.numeric(prom_cassettes[all_cassettes[i], ])
-  
-  cox_model <- coxph(Surv(IDFS, IDFS_bin) ~ predictor_values)
-  model_summary <- summary(cox_model)
-  
-  # Extract HR, confidence intervals, and p-value
-  hr <- model_summary$coefficients[,"exp(coef)"]
-  lower_ci <- model_summary$conf.int[,"lower .95"]
-  upper_ci <- model_summary$conf.int[,"upper .95"]
-  pvalue <- model_summary$coefficients[,"Pr(>|z|)"]
-  
-  # Store results
-  results <- rbind(results, data.frame(Cassette = all_cassettes_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
-}
-
-# FDR correction
-results$pvalue_adj <- p.adjust(results$pvalue, method = "fdr")
-
-# Create volcano plot
-ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
-  geom_point(aes(color = pvalue_adj < 0.05), size = 3) +
-  geom_text_repel() +
-  scale_color_manual(values = c("black", "red")) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "blue") +
-  xlab("Log2 Hazard Ratio") + 
-  ylab("-Log10 Adjusted P-value") +
-  theme_classic() +
-  theme(axis.text = element_text(size = 12), 
-        axis.title = element_text(size = 14)) +
-  ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
-
-genes[names(distal_15$colors)[distal_15$colors==701]]
-results[421,]
-
-
