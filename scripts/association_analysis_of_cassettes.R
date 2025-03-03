@@ -163,7 +163,7 @@ head(results_sorted)
 
 distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
 data <- distal_15$colors
-cpgs <- names(data)[data == 336]
+cpgs <- names(data)[data == 631]
 genes[cpgs]
 
 
@@ -220,7 +220,7 @@ head(results_sorted, 20)
 
 proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
 data <- proximal_15$colors
-cpgs <- names(data)[data == 51]
+cpgs <- names(data)[data == 6]
 genes[cpgs]
 
 
@@ -268,11 +268,11 @@ ggplot(plot_data, aes(x = X, y = Y)) +
        size = "TILs (%)") +  # Keep only the size label
   theme_classic()
 
-# NOSTRIN
+# CELF2
 
 # Define variables
-x_values <- as.numeric(prom_cassettes["453",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["NOSTRIN", colnames(prom_cassettes)])  # Y-axis variable
+x_values <- as.numeric(prox_cassettes["6",])  # X-axis variable
+y_values <- as.numeric(fpkm_data["CELF2", colnames(prom_cassettes)])  # Y-axis variable
 tils_values <- as.numeric(main_var) / 100  
 
 # Create a dataframe for ggplot
@@ -284,7 +284,7 @@ ggplot(plot_data, aes(x = X, y = Y)) +
   scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
   scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
   labs(x = "Cassette PC1", 
-       y = "NOSTRIN Expression (FPKM)", 
+       y = "CELF2 Expression (FPKM)", 
        size = "TILs (%)") +  # Keep only the size label
   theme_classic()
 
@@ -308,6 +308,25 @@ ggplot(plot_data, aes(x = X, y = Y)) +
        size = "TILs (%)") +  # Keep only the size label
   theme_classic()
 
+# PCDHGA2
+
+# Define variables
+x_values <- as.numeric(prom_cassettes["183",])  # X-axis variable
+y_values <- as.numeric(fpkm_data["PCDHGA2", colnames(prom_cassettes)])  # Y-axis variable
+tils_values <- as.numeric(main_var) / 100  
+
+# Create a dataframe for ggplot
+plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
+
+# Create scatterplot with both color and size representing TILs
+ggplot(plot_data, aes(x = X, y = Y)) +
+  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
+  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
+  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
+  labs(x = "Cassette PC1", 
+       y = "PCDHGA2 Expression (FPKM)", 
+       size = "TILs (%)") +  # Keep only the size label
+  theme_classic()
 
 
 #
@@ -317,55 +336,6 @@ ggplot(plot_data, aes(x = X, y = Y)) +
 IDFS <- x[colnames(prom_cassettes),"IDFS"]
 IDFS_bin <- x[colnames(prom_cassettes),"IDFSbin"]
 
-
-# Define predictor genes
-cassettes <- c("547", "141", "453", "250")
-cassettes_names <- c("ZBP1", "GBP4", "NOSTRIN", "PPP1R36")
-
-# Initialize a data frame to store results
-results <- data.frame(Cassette = character(), HR = numeric(), Lower = numeric(), Upper = numeric(), pvalue = numeric())
-
-# Loop through genes
-for (i in 1:length(cassettes)) {
-  predictor_values <- as.numeric(prom_cassettes[cassettes[i], ])
-  
-  cox_model <- coxph(Surv(IDFS, IDFS_bin) ~ predictor_values)
-  model_summary <- summary(cox_model)
-  
-  # Extract HR, confidence intervals, and p-value
-  hr <- model_summary$coefficients[,"exp(coef)"]
-  lower_ci <- model_summary$conf.int[,"lower .95"]
-  upper_ci <- model_summary$conf.int[,"upper .95"]
-  pvalue <- model_summary$coefficients[,"Pr(>|z|)"]
-  
-  # Store results
-  results <- rbind(results, data.frame(Cassette = cassettes_names[i], HR = hr, Lower = lower_ci, Upper = upper_ci, pvalue = pvalue))
-}
-
-# Adjust gene factor order for plotting
-results$Cassette <- factor(results$Cassette, levels = rev(results$Cassette))  # Reverse order for plot
-
-
-# Forest plot using ggplot2
-ggplot(results, aes(x = Cassette, y = HR, ymin = Lower, ymax = Upper)) +
-  geom_pointrange(size = 1, color = "blue") +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +  # Reference line at HR = 1
-  coord_flip() +  # Flip axes for better visualization
-  xlab("Gene") + 
-  ylab("Hazard Ratio (95% CI)") +
-  theme_classic() +
-  theme(axis.text = element_text(size = 12), 
-        axis.title = element_text(size = 14)) +
-  ggtitle("Univ. Cox Regression of Cassette´s PC1")
-
-
-
-#
-# VOLCANO PLOT OF CASSETTES AND OUTCOME
-#
-
-IDFS <- x[colnames(prom_cassettes),"IDFS"]
-IDFS_bin <- x[colnames(prom_cassettes),"IDFSbin"]
 
 # PROMOTER
 
@@ -409,8 +379,8 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-genes[names(promoter_15$colors)[promoter_15$colors==103]]
-results[104,]
+genes[names(promoter_15$colors)[promoter_15$colors==183]]
+results[184,]
 
 # Plotting metastasis type vs cassette 183
 
@@ -475,8 +445,8 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-genes[names(distal_15$colors)[distal_15$colors==468]]
-results[104,]
+genes[names(distal_15$colors)[distal_15$colors==59]]
+results[60,]
 
 
 # PROXIMAL

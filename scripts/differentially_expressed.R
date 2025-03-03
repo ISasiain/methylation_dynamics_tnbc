@@ -478,7 +478,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
 
 # HEATMAPS OF PARTICULAR GENES
 
-current_gene_id = "TMEM176B"
+current_gene_id = "SCARB1"
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
 tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
@@ -521,6 +521,7 @@ left_annotation <- rowAnnotation(
   "Normal beta" = rowMeans(betaNorm[names(genes)[genes == current_gene_id],]),
   col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")))
 )
+
 
 # Heatmap of genes
 Heatmap(

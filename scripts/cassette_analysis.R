@@ -122,6 +122,8 @@ ggplot(summary_df, aes(x = beta)) +
 # List all distal files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
 
+
+
 # Loop through each file
 for (file in distal_files) {
   # Extract the beta value from the filename
@@ -169,6 +171,10 @@ for (file in distal_files) {
     FOXA1 = c("0" = "white", "1" = "black")
   )
   
+  #Define ATAC annotation
+  atac_annotation <- rowAnnotation(df=data.frame("ATAC"=as.factor(annoObj$hasAtacOverlap[annoObj$illuminaID %in% unname(selected_CpGs)])),
+                                   col = list(ATAC = c("0" = "white", "1" = "black")))
+  
   # Create row annotation object
   row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
@@ -206,10 +212,11 @@ for (file in distal_files) {
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
                      top_annotation = column_annotation,
                      left_annotation = row_annotation,
+                     right_annotation = atac_annotation,
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/plots/distal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }
