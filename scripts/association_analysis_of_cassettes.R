@@ -163,7 +163,7 @@ head(results_sorted)
 
 distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
 data <- distal_15$colors
-cpgs <- names(data)[data == 631]
+cpgs <- names(data)[data == 40]
 genes[cpgs]
 
 
@@ -379,7 +379,7 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-genes[names(promoter_15$colors)[promoter_15$colors==183]]
+genes[names(promoter_15$colors)[promoter_15$colors==6]]
 results[184,]
 
 # Plotting metastasis type vs cassette 183
