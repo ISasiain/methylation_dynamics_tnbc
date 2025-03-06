@@ -478,7 +478,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
 
 # HEATMAPS OF PARTICULAR GENES
 
-current_gene_id = "SCARB1"
+current_gene_id = "RTP4"
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
 tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
