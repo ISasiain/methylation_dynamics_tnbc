@@ -17,7 +17,7 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
+prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_8.csv")
 rownames(prom_cassettes) <- prom_cassettes$Cassette
 prom_cassettes$Cassette <- NULL
 
@@ -103,11 +103,11 @@ ggplot(results, aes(x = Tau, y = logP, label = Cassette)) +
 # Assuming your dataframe is named df
 results_sorted <- results[order(-abs(results$Tau)), ]
 
-head(results_sorted, 20)
+head(results_sorted, 30)
 
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_8.rds")
 data <- promoter_15$colors
-cpgs <- names(data)[data == 10]
+cpgs <- names(data)[data == 8]
 genes[cpgs]
 
 

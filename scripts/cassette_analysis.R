@@ -123,7 +123,6 @@ ggplot(summary_df, aes(x = beta)) +
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
 
 
-
 # Loop through each file
 for (file in distal_files) {
   # Extract the beta value from the filename
@@ -506,7 +505,7 @@ for (file in proximal_files) {
 
 
 #
-# SUMARIZING CASSETTES
+# SUMMARIZING CASSETTES
 #
 
 # Distal cassettes
