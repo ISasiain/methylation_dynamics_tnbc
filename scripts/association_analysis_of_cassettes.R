@@ -17,7 +17,7 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_15.csv")
+prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(prom_cassettes) <- prom_cassettes$Cassette
 prom_cassettes$Cassette <- NULL
 
@@ -41,6 +41,7 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 })
 
 names(genes) <- annoObj$illuminaID
+
 
 # Loading gene expression
 fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
@@ -102,11 +103,11 @@ ggplot(results, aes(x = Tau, y = logP, label = Cassette)) +
 # Assuming your dataframe is named df
 results_sorted <- results[order(-abs(results$Tau)), ]
 
-head(results_sorted)
+head(results_sorted, 20)
 
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_15.rds")
+promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 data <- promoter_15$colors
-cpgs <- names(data)[data == 183]
+cpgs <- names(data)[data == 10]
 genes[cpgs]
 
 
@@ -336,6 +337,10 @@ ggplot(plot_data, aes(x = X, y = Y)) +
 IDFS <- x[colnames(prom_cassettes),"IDFS"]
 IDFS_bin <- x[colnames(prom_cassettes),"IDFSbin"]
 
+# Use scaled values
+prom_cassettes <- scale(prom_cassettes)
+dis_cassettes <- scale(dis_cassettes)
+prox_cassettes <- scale(prox_cassettes)
 
 # PROMOTER
 
@@ -379,8 +384,8 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-genes[names(promoter_15$colors)[promoter_15$colors==6]]
-results[184,]
+my_genes <- genes[names(promoter_15$colors)[promoter_15$colors==250]]
+results[548,]
 
 # Plotting metastasis type vs cassette 183
 
@@ -493,3 +498,6 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
 genes[names(proximal_15$colors)[proximal_15$colors==40]]
+
+
+H

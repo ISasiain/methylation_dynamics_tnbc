@@ -1,9 +1,12 @@
 #! usr/bin/Rscript
 
+if (!requireNamespace("WGCNA", quietly = TRUE)) {
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install("WGCNA")
+}
+
 library(WGCNA)
-library(ComplexHeatmap)
-library(circlize)
-library(ggplot2)
 
 
 #
@@ -20,24 +23,18 @@ rownames(x) <- x$PD_ID
 # Loading gene expression
 fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
 
+#
+# Preprocessing
+#
+
 # CpG context
 
 # Getting proximal CpGs
 proximal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
-
 proximal_betas <- betaAdj[rownames(betaAdj) %in% proximal_cpgs, ]
 
 
-plot(density(sapply(1:nrow(proximal_betas), FUN = function(row) {var(proximal_betas[row,])})))
-abline(v=0.05)
-sum(sapply(1:nrow(proximal_betas), FUN = function(row) {var(proximal_betas[row,])}) > 0.05)
-
-
-
-# Testing WGCNA
-par(mfrow = c(1,1))
-
-# 1. proximal CPGS
+# Filtering based on variance
 
 # Getting most variables CpGs
 variance_prox <- sapply(1:nrow(proximal_betas), FUN = function(row) {var(proximal_betas[row,])})
@@ -48,6 +45,11 @@ abline(v=0.05)
 
 # Filtering data
 prox_to_analyse <- t(proximal_betas[variance_prox > 0.05,])
+
+
+#
+# Running WGCNA
+#
 
 # # Running WGCNA
 # # Choose a set of soft-thresholding powers
@@ -90,7 +92,7 @@ prox_to_analyse <- t(proximal_betas[variance_prox > 0.05,])
 
 # Running WGCNA
 
-betas <- c(8, 10, 15,20,25)
+betas <- c(8, 10, 15,20, 25)
 cor = WGCNA::cor
 
 for (beta in betas) {
@@ -126,6 +128,5 @@ for (beta in betas) {
   # Saving network
   my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_", beta, ".rds" )
   saveRDS(netwk, file = my_filename)
-  
   
 }

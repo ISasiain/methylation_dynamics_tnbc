@@ -131,7 +131,7 @@ boxplot(as.numeric(dist_summary_15["1", colnames(betaAdj)]) ~ ifelse(x$TNBCtype_
         outcol = "red"  # Highlight outliers in red
 )
 
-# PC1 VS IM
+# PC1 VS ASCAT
 plot(as.numeric(dist_summary_15["1", colnames(betaAdj)]) ~ x$ASCAT_TUM_FRAC,
      pch = 16,              # Solid circles for points
      xlab = "ASCAT Tumor Fraction",  # Add clear axis labels
