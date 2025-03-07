@@ -47,16 +47,16 @@ cpg_data <- data.frame(
 )
 
 # Calculating CpG density taking different sequence lengths
-lengths <- c(500, 1000, 2000)
+lengths <- c(500, 1000, 2000, 5000)
 
 for (l in lengths) {
   
   # Call the function with sequence_length of 200
   result <- calculate_cpg_density(cpg_data, sequence_length = l)
   
-  filename <- paste0("./PhD/Projects/project_3/analysis/cpg_desnity_", l, "_bp.rds")
+  filename <- paste0("./PhD/Projects/project_3/analysis/cpg_density/cpg_density_", l, "_bp.rds")
   
-  saveRDS(result, file="./PhD/Projects/project_3/analysis/cpg_desnity.rds")
+  saveRDS(result, file=filename)
 }
 
 
