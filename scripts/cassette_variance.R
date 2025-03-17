@@ -17,7 +17,7 @@ rownames(x) <- x$PD_ID
 #
 
 # Example cassette file
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_15.rds")
+promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")
 
 # COMPUTE VARIANCE
 
@@ -156,11 +156,11 @@ for (top_n in list(top_1000, top_5000, top_10000, top_17725)) {
   level_counts <- table(as.factor(promoter_15$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
-  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.0075])
+  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
   others <- sum(level_counts[infrequent_levels])
   
   # Combine infrequent levels into 'Others'
-  level_counts <- level_counts[level_counts >= length(top_n) * 0.0075]
+  level_counts <- level_counts[level_counts >= length(top_n) * 0.01]
   level_counts["Others"] <- others
   
   # Add data for current top_n to the combined data frame
@@ -330,11 +330,11 @@ for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_34481)) {
   level_counts <- table(as.factor(distal_15$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
-  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.0075])
+  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
   others <- sum(level_counts[infrequent_levels])
   
   # Combine infrequent levels into 'Others'
-  level_counts <- level_counts[level_counts >= length(top_n) * 0.0075]
+  level_counts <- level_counts[level_counts >= length(top_n) * 0.01]
   level_counts["Others"] <- others
   
   # Add data for current top_n to the combined data frame
@@ -365,7 +365,7 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 
 
 # Example cassette file
-proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
+proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")
 
 # COMPUTE VARIANCE
 
@@ -506,11 +506,11 @@ for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_33536)) {
   level_counts <- table(as.factor(proximal_15$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
-  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.0075])
+  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
   others <- sum(level_counts[infrequent_levels])
   
   # Combine infrequent levels into 'Others'
-  level_counts <- level_counts[level_counts >= length(top_n) * 0.0075]
+  level_counts <- level_counts[level_counts >= length(top_n) * 0.01]
   level_counts["Others"] <- others
   
   # Add data for current top_n to the combined data frame

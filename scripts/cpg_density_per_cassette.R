@@ -47,7 +47,7 @@ cpg_data <- data.frame(
 )
 
 # Calculating CpG density taking different sequence lengths
-lengths <- c(500, 1000, 2000, 5000)
+lengths <- c(500, 1000, 2000, 5000, 10000)
 
 for (l in lengths) {
   

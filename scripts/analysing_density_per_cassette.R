@@ -13,65 +13,17 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 
 
 # CpG density data
-density_1000 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_desnity_500_bp.rds")
+density_500 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_density_500_bp.rds")
+density_1000 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_density_1000_bp.rds")
+density_2000 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_density_2000_bp.rds")
+density_5000 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_density_5000_bp.rds")
+density_10000 <- readRDS("PhD/Projects/project_3/analysis/cpg_density/cpg_density_10000_bp.rds")
+
 
 # Cassettes
 promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_15.rds")
 distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
 proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
-
-#
-# DENSITY VS VARIANCE
-#
-
-# Total beta variance
-variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
-
-density_1000$Beta_variance <- variance_of_betas[density_1000$cpg_id]
-
-# Create 50 groups based on CpG density
-density_1000 <- density_1000 %>%
-  mutate(density_group = cut(cpg_density, breaks = 50, labels = FALSE))  # Creates 50 groups
-
-# Create 50 groups based on variance
-density_1000 <- density_1000 %>%
-  mutate(variance_group = cut(Beta_variance, breaks = 50, labels = FALSE))  # Creates 50 groups
-
-# Compute mean and SD of variance per CpG density group
-summary_stats <- density_1000 %>%
-  group_by(density_group) %>%
-  summarise(
-    mean_variance = mean(Beta_variance, na.rm = TRUE),
-    sd_variance = sd(Beta_variance, na.rm = TRUE),
-    mean_density = mean(cpg_density, na.rm = TRUE)  # Get mean density for x-axis
-  )
-
-# Plot mean variance ± SD across CpG density groups
-ggplot(summary_stats, aes(x = mean_density, y = mean_variance)) +
-  geom_line(color = "blue", size = 1) +
-  geom_ribbon(aes(ymin = mean_variance - sd_variance, ymax = mean_variance + sd_variance),
-              alpha = 0.2, fill = "blue") +
-  theme_minimal() +
-  labs(x = "Mean CpG Density per Group", y = "Mean Beta Variance",
-       title = "Beta Variance Change Across CpG Density Groups")
-
-# Compute mean and SD of variance per CpG density group
-summary_stats <- density_1000 %>%
-  group_by(variance_group) %>%
-  summarise(
-    mean_density = mean(cpg_density, na.rm = TRUE),
-    sd_density = sd(cpg_density, na.rm = TRUE),
-    mean_variance = mean(Beta_variance, na.rm = TRUE)  # Get mean density for x-axis
-  )
-
-# Plot mean variance ± SD across CpG density groups
-ggplot(summary_stats, aes(x = mean_variance, y = mean_density)) +
-  geom_line(color = "blue", size = 1) +
-  geom_ribbon(aes(ymin = mean_density - sd_density, ymax = mean_density + sd_density),
-              alpha = 0.2, fill = "blue") +
-  theme_minimal() +
-  labs(x = "Mean Beta Variance Group", y = "Mean CpG Density",
-       title = "CpG Density Change Across Beta Variance Groups")
 
 
 #
@@ -155,11 +107,24 @@ distal_cassettes <- sort(unique(distal_15$colors))
 cassettes_to_plot <- head(distal_cassettes, 6)
 
 # Density to plot
-density_to_plot <- density_1000[density_1000$cpg_id %in% names(distal_15$colors),]
+density_to_plot <- density_1000[density_10000$cpg_id %in% names(distal_15$colors),]
 density_to_plot$"Cassette" <- as.factor(distal_15$colors[density_to_plot$cpg_id])
 
 # Filter to include cassettes of interest
 density_to_plot <- density_to_plot[density_to_plot$Cassette %in% cassettes_to_plot,]
+
+# Adding annotations about repetitive sequences
+repeats <- as.factor(annoObj$hasAnyRepeatOverlap)
+names(repeats) <- annoObj$illuminaID
+
+density_to_plot$hasAnyRepeatOverlap <- repeats[density_to_plot$cpg_id]
+levels(density_to_plot$hasAnyRepeatOverlap) <- c("False", "True")
+
+# Create bar plot of repetitive sequences in cassette
+ggplot(density_to_plot, aes(x = Cassette, fill = as.factor(hasAnyRepeatOverlap))) +
+  geom_bar(position = "fill") +
+  labs(x = "CpG Cassette", y = "Count", fill = "Has Repeat Overlap") +
+  theme_minimal()
 
 # Generate the violin plot
 ggplot(density_to_plot, aes(x = Cassette, y = cpg_density, fill = Cassette)) +
@@ -278,4 +243,3 @@ grid.arrange(
   ncol = 2,
   widths = c(2, 1)
 )
-

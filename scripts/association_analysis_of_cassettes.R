@@ -17,7 +17,7 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_8.csv")
+prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_15.csv")
 rownames(prom_cassettes) <- prom_cassettes$Cassette
 prom_cassettes$Cassette <- NULL
 
