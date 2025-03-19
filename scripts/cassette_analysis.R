@@ -120,7 +120,7 @@ ggplot(summary_df, aes(x = beta)) +
 
 # Plotting first cassettes with annotatios. 
 # List all distal files
-distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_nonBasal*")
 
 
 # Loop through each file
@@ -132,7 +132,7 @@ for (file in distal_files) {
   distal <- readRDS(file)
   
   # Define the cassettes to include
-  selected_cassettes <- 1:7
+  selected_cassettes <- 2:13
   
   # Extract CpGs belonging to each cassette
   cpg_list <- lapply(selected_cassettes, function(cassette) {
@@ -144,7 +144,7 @@ for (file in distal_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- betaAdj[selected_CpGs, ]
+  beta_subset <- distal_betas[selected_CpGs, ]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
