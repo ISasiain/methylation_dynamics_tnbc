@@ -81,6 +81,7 @@ names(genes) <- annoObj$illuminaID
 
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+distal_files <- distal_files[!grepl("only", distal_files)]
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -120,7 +121,8 @@ ggplot(summary_df, aes(x = beta)) +
 
 # Plotting first cassettes with annotatios. 
 # List all distal files
-distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_nonBasal*")
+distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+distal_files <- distal_files[!grepl("only", distal_files)]
 
 
 # Loop through each file
@@ -132,7 +134,7 @@ for (file in distal_files) {
   distal <- readRDS(file)
   
   # Define the cassettes to include
-  selected_cassettes <- 2:13
+  selected_cassettes <- 1:7
   
   # Extract CpGs belonging to each cassette
   cpg_list <- lapply(selected_cassettes, function(cassette) {
@@ -144,7 +146,7 @@ for (file in distal_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- distal_betas[selected_CpGs, ]
+  beta_subset <- betaAdj[selected_CpGs, ]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
@@ -228,6 +230,7 @@ for (file in distal_files) {
 
 # List all files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+promoter_files <- promoter_files[!grepl("only", promoter_files)]
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -268,6 +271,8 @@ ggplot(summary_df, aes(x = beta)) +
 # Plotting first cassettes with annotatios. 
 # List all promoter files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+promoter_files <- promoter_files[!grepl("only", promoter_files)]
+
 
 # Loop through each file
 for (file in promoter_files) {
@@ -370,6 +375,8 @@ for (file in promoter_files) {
 
 # List all files
 proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+proximal_files <- promoter_files[!grepl("only", proximal_files)]
+
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -410,6 +417,7 @@ ggplot(summary_df, aes(x = beta)) +
 # Plotting first cassettes with annotatios. 
 # List all proximal files
 proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+proximal_files <- promoter_files[!grepl("only", proximal_files)]
 
 # Loop through each file
 for (file in proximal_files) {

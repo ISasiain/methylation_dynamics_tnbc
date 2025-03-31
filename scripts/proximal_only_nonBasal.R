@@ -16,17 +16,17 @@ library(WGCNA)
 # Loading EPIC methylation matrix
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
-# Distal cassettes
-distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
+# proximal cassettes
+proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
 
-# Summary distal cassettes
-summary_dis15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_15.csv")
-rownames(summary_dis15) <- as.character(summary_dis15$Cassette)
-summary_dis15$Cassette <- NULL
+# Summary proximal cassettes
+summary_prox15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_15.csv")
+rownames(summary_prox15) <- as.character(summary_prox15$Cassette)
+summary_prox15$Cassette <- NULL
 
-# Getting distal CpGs and betas
-distal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body") ) )]
-distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
+# Getting proximal CpGs and betas
+proximal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
+proximal_betas <- betaAdj[rownames(betaAdj) %in% proximal_cpgs, ]
 
 #
 # Preprocessing
@@ -35,37 +35,37 @@ distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
 # GETTING ONLY BASAL SAMPLES
 
 # Getting cassettes linked to basal/nonBasal split
-my_cpgs_dis <-  c(
-  names(distal_15$colors)[distal_15$colors == "2"],
-  names(distal_15$colors)[distal_15$colors == "4"]
+my_cpgs_prox <-  c(
+  names(proximal_15$colors)[proximal_15$colors == "1"],
+  names(proximal_15$colors)[proximal_15$colors == "2"]
 )
 
 # Geenerate data frame to store groups
-groupings_df <- data.frame(matrix(nrow = length(colnames(summary_dis15)), ncol = 1))
-rownames(groupings_df) <- colnames(summary_dis15)
-colnames(groupings_df) <- "group_dis"
+groupings_df <- data.frame(matrix(nrow = length(colnames(summary_prox15)), ncol = 1))
+rownames(groupings_df) <- colnames(summary_prox15)
+colnames(groupings_df) <- "group_prox"
 
 
 # Clustering in two groups
-distance_matrix <- dist(t(betaAdj[my_cpgs_dis,]))
+distance_matrix <- dist(t(betaAdj[my_cpgs_prox,]))
 hc <- hclust(distance_matrix)
-groupings_df$group_dis <- cutree(hc, k = 2)
+groupings_df$group_prox <- cutree(hc, k = 2)
 
 # Getting basal group
-distal_betas <- distal_betas[,rownames(groupings_df)[groupings_df==2]]
+proximal_betas <- proximal_betas[,rownames(groupings_df)[groupings_df==2]]
 
 
 # FILTERING BASED ON VARIANCE
 
 # Getting most variables CpGs
-variance_dis <- sapply(1:nrow(distal_betas), FUN = function(row) {var(distal_betas[row,])})
+variance_prox <- sapply(1:nrow(proximal_betas), FUN = function(row) {var(proximal_betas[row,])})
 
 # Plotting variance
-plot(density(variance_dis))
-abline(v=0.1)
+plot(density(variance_prox))
+abline(v=0.05)
 
 # Filtering data
-dis_to_analyse <- t(distal_betas[variance_dis > 0.1,])
+prox_to_analyse <- t(proximal_betas[variance_prox > 0.05,])
 
 #
 # Running WGCNA
@@ -111,12 +111,12 @@ dis_to_analyse <- t(distal_betas[variance_dis > 0.1,])
 
 # Running WGCNA
 
-betas <- c(20,25)
+betas <- c(5,8,10,15,20,25)
 cor = WGCNA::cor
 
 for (beta in betas) {
   
-  netwk <- blockwiseModules(dis_to_analyse,               
+  netwk <- blockwiseModules(prox_to_analyse,               
                             corrType="bicor", # Using biweight midcorrelation 
                             nThreads = 10,
                             
@@ -145,9 +145,9 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_", beta, ".rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/proximal/only_nonBasal_cassettes_beta_", beta, ".rds" )
   saveRDS(netwk, file = my_filename)
-
+  
 }
 
 
@@ -156,12 +156,12 @@ for (beta in betas) {
 #
 
 # List all files
-distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_basal*")
+proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE, pattern = "*only_nonBasal*")
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
 
-for (file in distal_files) {
+for (file in proximal_files) {
   
   # Getting beta
   beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
@@ -187,7 +187,7 @@ ggplot(summary_df, aes(x = beta)) +
   geom_bar(aes(y = num_cassettes), stat = "identity", fill = "blue", alpha = 0.6) +
   geom_point(aes(y = mean_cassette_length * 25), color = "red", size = 3) +  # Adjust scaling factor as needed
   geom_line(aes(y = mean_cassette_length * 25, group = 1), color = "red", size = 1) +  # Adjust scaling factor as needed
-  labs(title = "Distal cassettes (Var > 0.1)",
+  labs(title = "proximal cassettes (Var > 0.1)",
        x = "Beta",
        y = "Number of Cassettes") +
   scale_y_continuous(limits = c(0, 1050), sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
@@ -195,24 +195,21 @@ ggplot(summary_df, aes(x = beta)) +
 
 
 # Plotting first cassettes with annotatios. 
-# List all distal files
-distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_basal*")
-
 
 # Loop through each file
-for (file in distal_files) {
+for (file in proximal_files) {
   # Extract the beta value from the filename
   beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
   
   # Load the corresponding data
-  distal <- readRDS(file)
+  proximal <- readRDS(file)
   
   # Define the cassettes to include
-  selected_cassettes <- 2:13
+  selected_cassettes <- 1:13
   
   # Extract CpGs belonging to each cassette
   cpg_list <- lapply(selected_cassettes, function(cassette) {
-    names(distal$colors[distal$colors == cassette])
+    names(proximal$colors[proximal$colors == cassette])
   })
   names(cpg_list) <- selected_cassettes  # Assign cassette names
   
@@ -220,38 +217,20 @@ for (file in distal_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- distal_betas[selected_CpGs, ]
+  beta_subset <- proximal_betas[selected_CpGs, ]
   
   # Create a cassette grouping factor
-  cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
+  cassette_factor <- factor(proximal$colors[selected_CpGs], levels = selected_cassettes)
   
   # Compute CpG counts per cassette
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Subset row annotation matrix for selected transcription factors
-  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
-  
-  # Convert to a factor to ensure proper categorical annotation
-  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
-  
-  # Define color mapping for all TFs (0 = white, 1 = black)
-  tf_colors <- list(
-    SUZ12 = c("0" = "white", "1" = "black"),
-    EZH2  = c("0" = "white", "1" = "black"),
-    FOS   = c("0" = "white", "1" = "black"),
-    STAT3 = c("0" = "white", "1" = "black"),
-    ESR1  = c("0" = "white", "1" = "black"),
-    GATA3 = c("0" = "white", "1" = "black"),
-    FOXA1 = c("0" = "white", "1" = "black")
-  )
   
   #Define ATAC annotation
   atac_annotation <- rowAnnotation(df=data.frame("ATAC"=as.factor(annoObj$hasAtacOverlap[annoObj$illuminaID %in% unname(selected_CpGs)])),
                                    col = list(ATAC = c("0" = "white", "1" = "black")))
   
-  # Create row annotation object
-  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
   # Epitype annotations
   pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
@@ -286,12 +265,11 @@ for (file in distal_files) {
                      row_title = row_labels,  
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
                      top_annotation = column_annotation,
-                     left_annotation = row_annotation,
                      right_annotation = atac_annotation,
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/only_basal_heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/only_nonBasal_heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }

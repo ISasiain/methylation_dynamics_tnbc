@@ -117,8 +117,8 @@ my_cpgs_prox <- c(
 
 my_cpgs_all <- c(
   names(promoter_15$colors)[promoter_15$colors == "1"],
-  names(proximal_15$colors)[proximal_15$colors == "1"],
-  names(proximal_15$colors)[proximal_15$colors == "2"],
+  names(distal_15$colors)[distal_15$colors == "2"],
+  names(distal_15$colors)[distal_15$colors == "4"],
   names(proximal_15$colors)[proximal_15$colors == "1"],
   names(proximal_15$colors)[proximal_15$colors == "2"]
 )
@@ -478,7 +478,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
 
 # HEATMAPS OF PARTICULAR GENES
 
-current_gene_id = "RTP4"
+current_gene_id = "GBP4"
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
 tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
@@ -517,23 +517,30 @@ bottom_annotation <- HeatmapAnnotation(
 )
 
 # Updated left_annotation with color scale
-left_annotation <- rowAnnotation(
+right_annotation <- rowAnnotation(
   "Normal beta" = rowMeans(betaNorm[names(genes)[genes == current_gene_id],]),
   col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")))
 )
+
+# CpG context annotation
+left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]
+)
+ 
 
 
 # Heatmap of genes
 Heatmap(
   betaAdj[names(genes)[genes == current_gene_id],],
-  cluster_rows = TRUE,
+  cluster_rows = FALSE,
+  row_order = order(annoObj$start[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]),
   cluster_columns = TRUE,
   show_row_names = FALSE,
   show_column_names = FALSE,
   show_row_dend = FALSE, 
   top_annotation = top_annotation,
   bottom_annotation = bottom_annotation,
-  right_annotation = left_annotation,
+  right_annotation = right_annotation,
+  left_annotation = left_annotation,
   clustering_distance_columns = "euclidean",
   clustering_method_columns = "ward.D2",
   name = "Tumor beta"

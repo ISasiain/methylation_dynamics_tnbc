@@ -534,3 +534,75 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme_classic()
 
+
+#
+# ANALYSING ALL CPGS REGARDLESS OF CONTEXT
+#
+
+# Total beta variance
+variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
+
+# Cassettes labels
+proximal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_8.rds")$colors
+promoter_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_8.rds")$colors
+distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_8.rds")$colors
+
+# Merging labels
+cpg_labels <- c(sapply(proximal_5, function(x) {paste0("proximal_", x)}),
+                sapply(distal_5, function(x) {paste0("distal_", x)}),
+                sapply(promoter_5, function(x) {paste0("promoter_", x)}))
+
+# Getting most variant CpGs
+top_1000 <- names(sort(variance_of_betas, decreasing = T)[1:1000])
+top_5000 <- names(sort(variance_of_betas, decreasing = T)[1:5000])
+top_10000 <- names(sort(variance_of_betas, decreasing = T)[1:10000])
+top_20000 <- names(sort(variance_of_betas, decreasing = T)[1:20000])
+top_30000 <- names(sort(variance_of_betas, decreasing = T)[1:30000])
+top_50000 <- names(sort(variance_of_betas, decreasing = T)[1:50000])
+
+
+# Create a combined data frame for top 1000, 5000, 10000, and 17725
+df_combined <- data.frame()
+
+# Loop through different sets of CpGs (top 1000, 5000, etc.)
+for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_30000, top_50000)) {
+  # Count frequencies for each level based on the current top CpG set
+  level_counts <- table(as.factor(cpg_labels[top_n]))
+  
+  # Identify levels with frequency less than 0.5 %
+  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
+  others <- sum(level_counts[infrequent_levels])
+  
+  # Combine infrequent levels into 'Others'
+  level_counts <- level_counts[level_counts >= length(top_n) * 0.015]
+  level_counts["Others"] <- others
+  
+  # Add data for current top_n to the combined data frame
+  df_temp <- data.frame(
+    Cassette = names(level_counts),
+    Frequency = as.vector(level_counts),
+    Top_CPG_Set = paste("Top", length(top_n))
+  )
+  
+  df_combined <- rbind(df_combined, df_temp)
+}
+
+# Define the order for the top CpG sets and the cassettes
+top_cpg_order <- c("Top 1000", "Top 5000", "Top 10000", "Top 20000","Top 30000","Top 50000")
+
+# Plot with specific order for bars and fill
+ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order), 
+                        y = Frequency, fill = factor(Cassette))) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(x = "Cassette", y = "Frequency", fill="Cassettes") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme_classic()
+
+
+Heatmap(betaAdj[names(cpg_labels[top_5000][!cpg_labels[top_5000] %in% c("distal_0", "promoter_0", "proximal_0", "distal_1")]),], 
+        use_raster=F)
+
+Heatmap(betaAdj[top_5000 ,], 
+        use_raster=F,
+        )
+

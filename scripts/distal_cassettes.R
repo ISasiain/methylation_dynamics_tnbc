@@ -37,7 +37,7 @@ plot(density(variance_dis))
 abline(v=0.1)
 
 # Filtering data
-dis_to_analyse <- t(distal_betas[variance_dis > 0.1,])
+dis_to_analyse <- t(distal_betas[variance_dis > 0.13,])
 
 
 #
