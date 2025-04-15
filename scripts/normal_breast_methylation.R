@@ -1,13 +1,28 @@
+#! usr/bin/Rscript
 
-library(minfi)
 library(ComplexHeatmap)
+
+#
+# LOADING DATA
+#
+
+
+# Epitype annotations
+my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
+
+# Generate obkects for genes linked to CpGs
+genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
+  if (grepl("\\|", x)) {
+    strsplit(x, "\\|")[[1]][2]
+  } else {
+    x
+  }
+})
+
+names(genes) <- annoObj$illuminaID
 
 # Loading data (GSE69914)
 my_files <- list.files("/Volumes/Data/Project_3/normal_breast_methylation/GSE69914_RAW/", pattern = "Raw.txt$")
-
-# Loadk Illumina 450K annotation
-illumina450K_annotation <- read.csv("/Volumes/Data/Project_3/normal_breast_methylation/humanmethylation450_15017482_v1-2.csv",
-                                    skip = 6)
 
 # Filtering files. Get only normal tissue
 files_to_keep <- paste0("XX0XX0XXXXXXXXXXXX0XXXXXX0XXXXX0XXXXXXXXXXXXX0XXXX",
@@ -37,18 +52,27 @@ for(file in my_files) {
   my_file <- read.table(paste0("/Volumes/Data/Project_3/normal_breast_methylation/GSE69914_RAW/", file))
   column_name <- strsplit(file, split = "_")[[1]][1]
   
-  normal_tissue_methylation[unname(my_file$V1), column_name] <- unname(my_file$V2)                 
+  normal_tissue_methylation[unname(my_file$V1), column_name] <- as.numeric(unname(my_file$V2))             
 }
 
-normal_tissue_methylation <- normal_tissue_methylation[-1,]
+
+# Loading data (GSE67919)
+
+# Load data (dataframe is called beta and annottaions)
+load("/Volumes/Data/Project_3/normal_breast_methylation/GSE67919/GSE67919_Beta.RData")
+load("/Volumes/Data/Project_3/normal_breast_methylation/GSE67919/GSE67919_Annotations.RData")
+
+normal_tissue_methylation_96 <- beta
+
+
+#
+# PLOTTING
+#
 
 
 gbp4_cpgs <- names(genes)[genes == "GBP4"]
-
-gbp4_cpgs <- gbp4_cpgs[gbp4_cpgs %in% rownames(normal_tissue_methylation)]
-
-data_subset <- data.frame(lapply(normal_tissue_methylation[gbp4_cpgs,], function(x) as.numeric(as.character(x))))
-rownames(data_subset) <- gbp4_cpgs
+gbp4_cpgs <- gbp4_cpgs[gbp4_cpgs %in% rownames(normal_tissue_methylation_96)]
+data_subset <- normal_tissue_methylation_96[gbp4_cpgs,]
 
 
 Heatmap(data_subset,

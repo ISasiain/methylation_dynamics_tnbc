@@ -498,6 +498,3 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
 genes[names(proximal_15$colors)[proximal_15$colors==40]]
-
-
-H

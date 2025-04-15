@@ -82,6 +82,8 @@ names(genes) <- annoObj$illuminaID
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
 distal_files <- distal_files[!grepl("only", distal_files)]
+distal_files <- distal_files[grepl("not_purity_adjusted", distal_files)]
+
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -89,7 +91,7 @@ summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_casse
 for (file in distal_files) {
   
   # Getting beta
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)_.*\\.rds", "\\1", file))
   
   # Analysing cassettes
   my_data <- readRDS(file)$colors
@@ -123,12 +125,13 @@ ggplot(summary_df, aes(x = beta)) +
 # List all distal files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
 distal_files <- distal_files[!grepl("only", distal_files)]
+distal_files <- distal_files[grepl("not_purity_adjusted", distal_files)]
 
 
 # Loop through each file
 for (file in distal_files) {
   # Extract the beta value from the filename
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)_.*\\.rds", "\\1", file))
   
   # Load the corresponding data
   distal <- readRDS(file)
@@ -146,7 +149,7 @@ for (file in distal_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- betaAdj[selected_CpGs, ]
+  beta_subset <- betaNew[selected_CpGs, ]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
@@ -217,7 +220,7 @@ for (file in distal_files) {
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted_from_unadjusted.pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }
@@ -231,6 +234,7 @@ for (file in distal_files) {
 # List all files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
 promoter_files <- promoter_files[!grepl("only", promoter_files)]
+promoter_files <- promoter_files[!grepl("not_purity_adjusted", promoter_files)]
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -238,7 +242,7 @@ summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_casse
 for (file in promoter_files) {
   
   # Getting beta
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
   
   # Analysing cassettes
   my_data <- readRDS(file)$colors
@@ -268,16 +272,17 @@ ggplot(summary_df, aes(x = beta)) +
   theme_classic()
 
 
-# Plotting first cassettes with annotatios. 
+# Plotting first cassettes with annotatios.
 # List all promoter files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
 promoter_files <- promoter_files[!grepl("only", promoter_files)]
+promoter_files <- promoter_files[!grepl("not_purity_adjusted", promoter_files)]
 
 
 # Loop through each file
 for (file in promoter_files) {
   # Extract the beta value from the filename
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
   
   # Load the corresponding data
   promoter <- readRDS(file)
@@ -295,7 +300,7 @@ for (file in promoter_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- betaAdj[selected_CpGs, ]
+  beta_subset <- betaNew[selected_CpGs, ]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(promoter$colors[selected_CpGs], levels = selected_cassettes)
@@ -361,7 +366,7 @@ for (file in promoter_files) {
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/plots/promoter_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted.pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }
@@ -384,7 +389,7 @@ summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_casse
 for (file in proximal_files) {
   
   # Getting beta
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\*.rds", "\\1", file))
   
   # Analysing cassettes
   my_data <- readRDS(file)$colors

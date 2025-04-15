@@ -4,6 +4,7 @@ library(Seurat)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(reshape2)
 
 #
 # Loading data
@@ -22,7 +23,7 @@ only_tc <- UpdateSeuratObject(only_tc)
 # GENES OF INTEREST IN CANCER CELLS
 
 # Plotting expression of genes of interest in tumour cells
-DotPlot(only_tum, features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L", "CD274"), group.by = "group", assay = "RNA") + RotatedAxis()
+DotPlot(only_tum, features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L", "CD274", "AR", "FOXA1", "FOXC1", "ELF5"), group.by = "group", assay = "RNA") + RotatedAxis()
 
 
 # STROMAL AND IMMUNE CELLS PER SAMPLE
@@ -31,7 +32,7 @@ cell_types <- c("0"="T cells", "1"="Macrophagues", "2"="Plasma cells", "3"="Fibr
 
 # Get log count data
 cell_type_counts <- table(only_str$group, unname(cell_types[only_str$seurat_clusters]))
-cell_type_counts_log <- log(cell_type_counts + 1)
+#cell_type_counts_log <- log(cell_type_counts + 1)
 
 # Z Scale per cell type 
 scaled_per_cell_type <- t(scale(cell_type_counts_log))

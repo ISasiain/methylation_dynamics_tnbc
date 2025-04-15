@@ -31,7 +31,7 @@ fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_a
 
 # Getting proximal CpGs
 proximal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
-proximal_betas <- betaAdj[rownames(betaAdj) %in% proximal_cpgs, ]
+proximal_betas <- betaNew[rownames(betaNew) %in% proximal_cpgs, ]
 
 
 # Filtering based on variance
@@ -44,7 +44,8 @@ plot(density(variance_dis))
 abline(v=0.05)
 
 # Filtering data
-prox_to_analyse <- t(proximal_betas[variance_prox > 0.05,])
+selected_var <- sort(variance_prom, decreasing = T)[33536] # Using this to find an equivalent variance to the selected one in adjsuted betas
+prox_to_analyse <- t(proximal_betas[variance_prox > selected_var,])
 
 
 #
@@ -126,7 +127,7 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_", beta, ".rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_", beta, "_not_purity_adjusted.rds" )
   saveRDS(netwk, file = my_filename)
   
 }

@@ -1,5 +1,4 @@
 #! usr/bin/Rscript
-
 if (!requireNamespace("WGCNA", quietly = TRUE)) {
   if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -23,8 +22,8 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 # CpG context
 
 # Getting distal CpGs
-distal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body") ) )]
-distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
+distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap & (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body")))]
+distal_betas <- betaAdj[rownames(betaNew) %in% distal_cpgs, ]
 
 
 # Filtering based on variance
@@ -37,7 +36,11 @@ plot(density(variance_dis))
 abline(v=0.1)
 
 # Filtering data
-dis_to_analyse <- t(distal_betas[variance_dis > 0.13,])
+#selected_var <- sort(variance_dis, decreasing = T)[34481] # Using this to find an equivalent variance to the selected one in adjsuted betas
+selected_var <- 0.1
+dis_to_analyse <- t(distal_betas[variance_dis > selected_var,])
+
+
 
 
 #
@@ -89,6 +92,8 @@ cor = WGCNA::cor
 
 for (beta in betas) {
   
+  print(beta)
+  
   netwk <- blockwiseModules(dis_to_analyse,               
                             corrType="bicor", # Using biweight midcorrelation 
                             nThreads = 10,
@@ -118,6 +123,6 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_", beta, ".rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_", beta, "_only_atac.rds" )
   saveRDS(netwk, file = my_filename)
 }

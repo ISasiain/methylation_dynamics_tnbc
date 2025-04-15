@@ -1,5 +1,10 @@
 #! usr/bin/Rscript
 
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+
 #
 # LOADING DATA 
 #
@@ -506,7 +511,7 @@ for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_33536)) {
   level_counts <- table(as.factor(proximal_15$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
-  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
+  infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.05])
   others <- sum(level_counts[infrequent_levels])
   
   # Combine infrequent levels into 'Others'
@@ -543,14 +548,44 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 
 # Cassettes labels
-proximal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_8.rds")$colors
-promoter_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_8.rds")$colors
-distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_8.rds")$colors
+proximal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")$colors
+promoter_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")$colors
+distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")$colors
+
 
 # Merging labels
 cpg_labels <- c(sapply(proximal_5, function(x) {paste0("proximal_", x)}),
                 sapply(distal_5, function(x) {paste0("distal_", x)}),
                 sapply(promoter_5, function(x) {paste0("promoter_", x)}))
+
+# Initialize a dataframe to store results
+cassette_stats <- data.frame(
+  cassette = character(),
+  mean_var = numeric(),
+  sd_var = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (cassette in unique(cpg_labels)) {
+  # Subset rows belonging to the current cassette
+  cassette_rows <- names(which(cpg_labels == cassette))
+  
+  if (length(cassette_rows) > 0) {
+    # Compute variance of betas for the cassette
+    variance_of_cassette <- apply(betaAdj[cassette_rows, , drop = FALSE], MARGIN = 1, FUN = var)
+    
+    # Compute mean and standard deviation of variance
+    mean_var <- mean(variance_of_cassette, na.rm = TRUE)
+    sd_var <- sd(variance_of_cassette, na.rm = TRUE)
+    
+    # Append to the dataframe
+    cassette_stats <- rbind(cassette_stats, data.frame(
+      cassette = cassette,
+      mean_var = mean_var,
+      sd_var = sd_var
+    ))
+  }
+}
 
 # Getting most variant CpGs
 top_1000 <- names(sort(variance_of_betas, decreasing = T)[1:1000])
@@ -574,7 +609,7 @@ for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_30000, top_5000
   others <- sum(level_counts[infrequent_levels])
   
   # Combine infrequent levels into 'Others'
-  level_counts <- level_counts[level_counts >= length(top_n) * 0.015]
+  level_counts <- level_counts[level_counts >= length(top_n) * 0.01]
   level_counts["Others"] <- others
   
   # Add data for current top_n to the combined data frame
@@ -587,22 +622,75 @@ for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_30000, top_5000
   df_combined <- rbind(df_combined, df_temp)
 }
 
+# Data for variance violin plots
+top_sets <- list(
+  `Top 1000` = top_1000,
+  `Top 5000` = top_5000,
+  `Top 10000` = top_10000,
+  `Top 20000` = top_20000,
+  `Top 30000` = top_30000,
+  `Top 50000` = top_50000
+)
+
+violin_df <- do.call(rbind, lapply(names(top_sets), function(set_name) {
+  cpgs <- top_sets[[set_name]]
+  data.frame(Top_CPG_Set = set_name, Variance = variance_of_betas[cpgs])
+}))
+
+
 # Define the order for the top CpG sets and the cassettes
 top_cpg_order <- c("Top 1000", "Top 5000", "Top 10000", "Top 20000","Top 30000","Top 50000")
 
-# Plot with specific order for bars and fill
-ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order), 
-                        y = Frequency, fill = factor(Cassette))) +
+# First plot: Stacked bar (relative proportions)
+bar_plot <- ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order), 
+                                    y = Frequency, fill = factor(Cassette))) +
   geom_bar(stat = "identity", position = "fill") +
-  labs(x = "Cassette", y = "Frequency", fill="Cassettes") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  theme_classic()
+  labs(x = "Cassette", y = "Frequency", fill = "Cassettes") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
+# Second plot: Violin + boxplot (variance)
+violin_plot <- ggplot(violin_df, aes(x = factor(Top_CPG_Set, levels = top_cpg_order), y = Variance)) +
+  geom_violin(fill = "#999999", color = "black") +
+  geom_boxplot(width = 0.1) +
+  labs(x = NULL, y = "CpG Variance") +
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
 
-Heatmap(betaAdj[names(cpg_labels[top_5000][!cpg_labels[top_5000] %in% c("distal_0", "promoter_0", "proximal_0", "distal_1")]),], 
-        use_raster=F)
+# Third plot: Mean and sd of variance of each cassette.
 
-Heatmap(betaAdj[top_5000 ,], 
-        use_raster=F,
-        )
+# Add group based on name prefix
+cassette_stats$group <- sapply(cassette_stats$cassette, function(x) {
+  if (grepl("^proximal", x)) {
+    return("Proximal")
+  } else if (grepl("^promoter", x)) {
+    return("Promoter")
+  } else if (grepl("^distal", x)) {
+    return("Distal")
+  } 
+})
+
+# Set cassette factor levels manually based on desired group order
+cassette_stats$cassette <- factor(cassette_stats$cassette, levels = rev(cassette_stats$cassette[order(cassette_stats$group)]))
+
+# Plot
+variance_per_cassette <- ggplot(cassette_stats[cassette_stats$cassette %in% df_combined$Cassette,], aes(x = cassette, y = mean_var, fill = group)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = mean_var - sd_var, ymax = mean_var + sd_var), width = 0.2) +
+  coord_flip() +
+  labs(x = "Cassette", y = "Mean Variance", fill = "Group") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+# Combine all three plots
+combined_1 <- violin_plot / bar_plot + plot_layout(
+  heights = unit(c(1,12),c("null","cm")))
+  
+combined_plot <- combined_1 | variance_per_cassette + plot_layout(
+  widths = unit(c(3,45),c("cm","null")))
+
+# Print
+combined_plot
+
 
