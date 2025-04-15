@@ -44,7 +44,7 @@ plot(density(variance_dis))
 abline(v=0.05)
 
 # Filtering data
-selected_var <- sort(variance_prom, decreasing = T)[33536] # Using this to find an equivalent variance to the selected one in adjsuted betas
+selected_var <- sort(variance_prox, decreasing = T)[33536] # Using this to find an equivalent variance to the selected one in adjsuted betas
 prox_to_analyse <- t(proximal_betas[variance_prox > selected_var,])
 
 
