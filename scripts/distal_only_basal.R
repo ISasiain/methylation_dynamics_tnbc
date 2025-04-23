@@ -25,7 +25,9 @@ rownames(summary_dis15) <- as.character(summary_dis15$Cassette)
 summary_dis15$Cassette <- NULL
 
 # Getting distal CpGs and betas
-distal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body") ) )]
+distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
+                                          (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
+
 distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
 
 #

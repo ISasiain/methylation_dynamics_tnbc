@@ -22,9 +22,12 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 # CpG context
 
 # Getting distal CpGs
-distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap & (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body")))]
+distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
+                           (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
+
 distal_betas <- betaAdj[rownames(betaNew) %in% distal_cpgs, ]
 
+annoObj$hasAtacOverlap[annoObj$illuminaID %in% distal_cpgs]
 
 # Filtering based on variance
 
@@ -86,7 +89,6 @@ dis_to_analyse <- t(distal_betas[variance_dis > selected_var,])
 
 
 # Running WGCNA
-
 betas <- c(5,8,10,15,20,25)
 cor = WGCNA::cor
 
