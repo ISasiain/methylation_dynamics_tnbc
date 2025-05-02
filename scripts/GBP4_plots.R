@@ -50,7 +50,7 @@ rownames(u.frame) <- u.frame$PD_ID
 # PLOTTING CPGS AFFECTING 
 #
 
-current_gene_id = "GBP4"
+current_gene_id = "KIT"
 
   
   pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
@@ -86,18 +86,22 @@ current_gene_id = "GBP4"
   )
   # Generate bottom annotation
   bottom_annotation <- HeatmapAnnotation(
-    "FPKM" = anno_barplot(as.numeric(fpkm_data[current_gene_id, colnames(betaAdj)]))
+    "FPKM" = anno_barplot(log(as.numeric(fpkm_data[current_gene_id, colnames(betaAdj)])+1))
   )
   
   # Updated left_annotation with color scale
   right_annotation <- rowAnnotation(
     "Normal beta" = rowMeans(betaNorm[names(genes)[genes == current_gene_id],]),
-    col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")))
+    "ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
+    col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")),
+               "ATAC" = c("0" = "white", "1"= "black"))
   )
   
   # CpG context annotation
   left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]
   )
+  
+  # Atac annotation
   
   # Cluster based on methylation
   cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
@@ -135,6 +139,7 @@ current_gene_id = "GBP4"
     clustering_method_columns = "ward.D2",
     name = "Tumor beta"
   )
+  
   
   
   #

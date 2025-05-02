@@ -25,7 +25,9 @@ rownames(summary_dis15) <- as.character(summary_dis15$Cassette)
 summary_dis15$Cassette <- NULL
 
 # Getting distal CpGs and betas
-distal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body") ) )]
+distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
+                                          (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
+
 distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
 
 #
@@ -112,7 +114,7 @@ dis_to_analyse <- t(distal_betas[variance_dis > 0.1,])
 # Running WGCNA
 
 betas <- c(5,8,10,15,20,25)
-bicor = WGCNA::cor
+cor = WGCNA::cor
 
 for (beta in betas) {
   
@@ -145,7 +147,7 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_", beta, ".rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_", beta, "_only_atac.rds" )
   saveRDS(netwk, file = my_filename)
   
 }
@@ -158,6 +160,7 @@ for (beta in betas) {
 
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_nonBasal*")
+distal_files <- distal_files[grepl("atac", distal_files)]
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -165,7 +168,7 @@ summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_casse
 for (file in distal_files) {
   
   # Getting beta
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
   
   # Analysing cassettes
   my_data <- readRDS(file)$colors
@@ -198,18 +201,18 @@ ggplot(summary_df, aes(x = beta)) +
 # Plotting first cassettes with annotatios. 
 # List all distal files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE, pattern = "*only_nonBasal*")
-
+distal_files <- distal_files[grepl("atac", distal_files)]
 
 # Loop through each file
 for (file in distal_files) {
   # Extract the beta value from the filename
-  beta <- as.numeric(sub(".*cassettes_beta_(\\d+)\\.rds", "\\1", file))
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
   
   # Load the corresponding data
   distal <- readRDS(file)
   
   # Define the cassettes to include
-  selected_cassettes <- 2:13
+  selected_cassettes <- 1:10
   
   # Extract CpGs belonging to each cassette
   cpg_list <- lapply(selected_cassettes, function(cassette) {
@@ -292,7 +295,7 @@ for (file in distal_files) {
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/only_nonBasal_heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/only_nonBasal_heatmap_beta_", beta, "_only_atac.pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }

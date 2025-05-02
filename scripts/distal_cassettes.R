@@ -25,9 +25,7 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
                            (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
 
-distal_betas <- betaAdj[rownames(betaNew) %in% distal_cpgs, ]
-
-annoObj$hasAtacOverlap[annoObj$illuminaID %in% distal_cpgs]
+distal_betas <- betaNew[rownames(betaNew) %in% distal_cpgs, ]
 
 # Filtering based on variance
 
@@ -39,8 +37,8 @@ plot(density(variance_dis))
 abline(v=0.1)
 
 # Filtering data
-#selected_var <- sort(variance_dis, decreasing = T)[34481] # Using this to find an equivalent variance to the selected one in adjsuted betas
-selected_var <- 0.1
+selected_var <- sort(variance_dis, decreasing = T)[7870] # Using this to find an equivalent variance to the selected one in non-adjsuted betas
+#selected_var <- 0.1
 dis_to_analyse <- t(distal_betas[variance_dis > selected_var,])
 
 
@@ -125,6 +123,6 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_", beta, "_only_atac.rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_", beta, "_only_atac_unadjusted.rds" )
   saveRDS(netwk, file = my_filename)
 }

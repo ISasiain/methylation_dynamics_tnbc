@@ -5,6 +5,7 @@ library(NMF)
 library(ggplot2)
 library(dplyr)
 library(ggalluvial)
+library(WGCNA)
 
 #
 # LOADING DATA
@@ -21,8 +22,8 @@ orig_epi <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_a
 
 # Loading CpG cassettes (Beta = 5)
 distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")
-nonbasal_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_5.rds")
-basal_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_5.rds")
+nonbasal_distal_5_all <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_5.rds")
+basal_distal_5_all <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_5.rds")
 
 distal_5_atac <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5_only_atac.rds")
 nonbasal_distal_5_atac <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_5_only_atac.rds")
@@ -37,7 +38,7 @@ my_betas <- betaAdj[rownames(betaAdj) %in% my_cpgs, ]
 my_cpgs_filtered <- my_cpgs[!distal_5$colors[my_cpgs] %in% c(0, 1)]
 my_betas_filtered <- betaAdj[rownames(betaAdj) %in% my_cpgs_filtered, ]
 
-# Filtering Non Distal CpGs and Cassettes not enriched fo TFs
+# Filtering Non Distal CpGs and Cassettes not enriched for TFs
 my_cpgs_TFfiltered <- my_cpgs[distal_5$colors[my_cpgs] %in% c(2, 3, 6)]
 my_betas_TFfiltered <- betaAdj[rownames(betaAdj) %in% my_cpgs_TFfiltered, ]
 
@@ -173,6 +174,146 @@ ggplot(df, aes(axis1 = Original_epitypes, axis2 = new_epitypes, axis3 = PAM50)) 
   theme_void() +
   labs(x = "Clusterings", y = "Count", title = "Comparison of Cluster Assignments")
 
+
+#
+# WGCNA FOR DETECTED NMF MAIN SUBTYPES
+#
+
+# Assign the detected subtypes as Basal and nonBasal. Highest number -> Basal
+for (nmf_sub_1 in colnames(subtypes_1)) {
+  
+  if(!nmf_sub_1 %in% c("orig_epi", "PAM50")) {
+    
+    # Getting frequency of assignments
+    table_of_clusters <- table(subtypes_1[, nmf_sub_1])
+    
+    # Renaming dataframe
+    subtypes_1[, nmf_sub_1] <- sapply(subtypes_1[, nmf_sub_1], function(subtype) {
+      
+      if (table_of_clusters[subtype] >= length(subtypes_1[, nmf_sub_1]) / 2) {
+        "Basal"
+      } else {"nonBasal"}
+      
+    })
+    
+  }
+  
+}
+
+
+
+# Looping over main subtype assignments and running WGCNA for basal and nonBasal samples
+for (nmf_sub_1 in colnames(subtypes_1)) {
+  
+  if(!nmf_sub_1 %in% c("orig_epi", "PAM50")) {
+    
+    # Running in basal and saving
+    betas <- c(5, 10, 15)
+    
+    # Iterate through betas
+    for (beta in betas) {
+      
+      if (nmf_sub_1 == "new_epi_atac") {
+        
+        dis_to_analyse <- my_betas_atac[,rownames(subtypes_1)[subtypes_1[, nmf_sub_1] == "Basal"]]
+        
+      } else {
+        
+        dis_to_analyse <- my_betas[,rownames(subtypes_1)[subtypes_1[, nmf_sub_1] == "Basal"]]
+        
+      }
+      
+      # Running WGCNA
+      netwk_basal <- blockwiseModules(dis_to_analyse,               
+                                      corrType="bicor", # Using biweight midcorrelation 
+                                      nThreads = 10,
+                                      
+                                      # == Adjacency Function ==
+                                      power = beta,             
+                                      networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+                                      
+                                      # == Tree and Block Options ==
+                                      deepSplit = 2,
+                                      pamRespectsDendro = F,
+                                      # detectCutHeight = 0.75,
+                                      minModuleSize = 3,
+                                      maxBlockSize = 6000,
+                                      
+                                      # == Module Adjustments ==
+                                      reassignThreshold = 0,
+                                      mergeCutHeight = 0.25,
+                                      
+                                      # == TOM == Archive the run results in TOM file (saves time)
+                                      saveTOMs = F,
+                                      saveTOMFileBase = "ER",
+                                      
+                                      # == Output Options
+                                      numericLabels = T,
+                                      verbose = 3)
+      
+      # Saving
+      my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/nmf_comparison/wgcna_nmf_subtypes/Basal_cassettes_beta_", beta, "_", nmf_sub_1, ".rds" )
+      saveRDS(netwk_basal, file = my_filename)
+      
+      
+    }
+    
+    
+    # Running in nonBasal and saving
+    # Running in basal and saving
+    betas <- c(5, 10, 15)
+    
+    # Iterate through betas
+    for (beta in betas) {
+      
+      if (nmf_sub_1 == "new_epi_atac") {
+        
+        dis_to_analyse <- my_betas_atac[,rownames(subtypes_1)[subtypes_1[, nmf_sub_1] == "nonBasal"]]
+        
+      } else {
+        
+        dis_to_analyse <- my_betas[,rownames(subtypes_1)[subtypes_1[, nmf_sub_1] == "nonBasal"]]
+        
+      }
+      
+      
+      # Running WGCNA
+      netwk_nonbasal <- blockwiseModules(dis_to_analyse,               
+                                      corrType="bicor", # Using biweight midcorrelation 
+                                      nThreads = 10,
+                                      
+                                      # == Adjacency Function ==
+                                      power = beta,             
+                                      networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+                                      
+                                      # == Tree and Block Options ==
+                                      deepSplit = 2,
+                                      pamRespectsDendro = F,
+                                      # detectCutHeight = 0.75,
+                                      minModuleSize = 3,
+                                      maxBlockSize = 6000,
+                                      
+                                      # == Module Adjustments ==
+                                      reassignThreshold = 0,
+                                      mergeCutHeight = 0.25,
+                                      
+                                      # == TOM == Archive the run results in TOM file (saves time)
+                                      saveTOMs = F,
+                                      saveTOMFileBase = "ER",
+                                      
+                                      # == Output Options
+                                      numericLabels = T,
+                                      verbose = 3)
+      
+      # Saving
+      my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/nmf_comparison/wgcna_nmf_subtypes/nonBasal_cassettes_beta_", beta, "_", nmf_sub_1, ".rds" )
+      saveRDS(netwk_nonbasal, file = my_filename)
+      
+      
+    }
+  }
+  
+}
 
 
 

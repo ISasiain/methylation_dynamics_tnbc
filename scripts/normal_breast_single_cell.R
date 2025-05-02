@@ -23,6 +23,8 @@ hbca_stroma <- readRDS("/Volumes/Data/Project_3/normal_breast_single_cell/hbca_s
 
 # Defining genes of interest
 genes_of_interest <- c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L")
+genes_of_interest <- c("SOX10", "KIT", "ELF5")
+
 
 # Getting ensembl ids
 ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")

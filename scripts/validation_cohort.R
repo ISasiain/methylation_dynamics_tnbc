@@ -52,7 +52,7 @@ rownames(gex.data) <- combined_names
 #
 
 # Defining genes of interest
-current_gene_id <- "GBP4"
+current_gene_id <- "CARD16"
 
 # Cluster based on methylation
 cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
@@ -108,7 +108,8 @@ Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
         top_annotation = column_annotation)
 
 boxplot(
-    as.numeric(gex.data[current_gene_id,]) ~ promoter_state
+    as.numeric(gex.data[current_gene_id,]) ~ promoter_state,
+    ylab="FPKM"
 )
 
 
