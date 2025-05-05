@@ -1,0 +1,224 @@
+Cargando paquete requerido: dynamicTreeCut
+Cargando paquete requerido: fastcluster
+
+Adjuntando el paquete: ‘fastcluster’
+
+The following object is masked from ‘package:stats’:
+
+    hclust
+
+
+
+Adjuntando el paquete: ‘WGCNA’
+
+The following object is masked from ‘package:stats’:
+
+    cor
+
+Cargando paquete requerido: grid
+========================================
+ComplexHeatmap version 2.20.0
+Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
+Github page: https://github.com/jokergoo/ComplexHeatmap
+Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
+
+If you use it in published research, please cite either one:
+- Gu, Z. Complex Heatmap Visualization. iMeta 2022.
+- Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
+    genomic data. Bioinformatics 2016.
+
+
+The new InteractiveComplexHeatmap package can directly export static 
+complex heatmaps into an interactive Shiny app with zero effort. Have a try!
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(ComplexHeatmap))
+========================================
+
+
+Adjuntando el paquete: ‘pheatmap’
+
+The following object is masked from ‘package:ComplexHeatmap’:
+
+    pheatmap
+
+Running: sample_n = 60, run = 1, beta = 5
+Running: sample_n = 60, run = 1, beta = 10
+Running: sample_n = 60, run = 1, beta = 15
+Running: sample_n = 60, run = 2, beta = 5
+Running: sample_n = 60, run = 2, beta = 10
+Running: sample_n = 60, run = 2, beta = 15
+Running: sample_n = 60, run = 3, beta = 5
+Running: sample_n = 60, run = 3, beta = 10
+Running: sample_n = 60, run = 3, beta = 15
+Running: sample_n = 60, run = 4, beta = 5
+Running: sample_n = 60, run = 4, beta = 10
+Running: sample_n = 60, run = 4, beta = 15
+Running: sample_n = 60, run = 5, beta = 5
+Running: sample_n = 60, run = 5, beta = 10
+Running: sample_n = 60, run = 5, beta = 15
+Running: sample_n = 60, run = 6, beta = 5
+Running: sample_n = 60, run = 6, beta = 10
+Running: sample_n = 60, run = 6, beta = 15
+Running: sample_n = 60, run = 7, beta = 5
+Running: sample_n = 60, run = 7, beta = 10
+Running: sample_n = 60, run = 7, beta = 15
+Running: sample_n = 60, run = 8, beta = 5
+Running: sample_n = 60, run = 8, beta = 10
+Running: sample_n = 60, run = 8, beta = 15
+Running: sample_n = 60, run = 9, beta = 5
+Running: sample_n = 60, run = 9, beta = 10
+Running: sample_n = 60, run = 9, beta = 15
+Running: sample_n = 60, run = 10, beta = 5
+Running: sample_n = 60, run = 10, beta = 10
+Running: sample_n = 60, run = 10, beta = 15
+Running: sample_n = 60, run = 11, beta = 5
+Running: sample_n = 60, run = 11, beta = 10
+Running: sample_n = 60, run = 11, beta = 15
+Running: sample_n = 60, run = 12, beta = 5
+Running: sample_n = 60, run = 12, beta = 10
+Running: sample_n = 60, run = 12, beta = 15
+Running: sample_n = 60, run = 13, beta = 5
+Running: sample_n = 60, run = 13, beta = 10
+Running: sample_n = 60, run = 13, beta = 15
+Running: sample_n = 60, run = 14, beta = 5
+Running: sample_n = 60, run = 14, beta = 10
+Running: sample_n = 60, run = 14, beta = 15
+Running: sample_n = 60, run = 15, beta = 5
+Running: sample_n = 60, run = 15, beta = 10
+Running: sample_n = 60, run = 15, beta = 15
+Running: sample_n = 60, run = 16, beta = 5
+Running: sample_n = 60, run = 16, beta = 10
+Running: sample_n = 60, run = 16, beta = 15
+Running: sample_n = 60, run = 17, beta = 5
+Running: sample_n = 60, run = 17, beta = 10
+Running: sample_n = 60, run = 17, beta = 15
+Running: sample_n = 60, run = 18, beta = 5
+Running: sample_n = 60, run = 18, beta = 10
+Running: sample_n = 60, run = 18, beta = 15
+Running: sample_n = 60, run = 19, beta = 5
+Running: sample_n = 60, run = 19, beta = 10
+Running: sample_n = 60, run = 19, beta = 15
+Running: sample_n = 60, run = 20, beta = 5
+Running: sample_n = 60, run = 20, beta = 10
+Running: sample_n = 60, run = 20, beta = 15
+Running: sample_n = 100, run = 1, beta = 5
+Running: sample_n = 100, run = 1, beta = 10
+Running: sample_n = 100, run = 1, beta = 15
+Running: sample_n = 100, run = 2, beta = 5
+Running: sample_n = 100, run = 2, beta = 10
+Running: sample_n = 100, run = 2, beta = 15
+Running: sample_n = 100, run = 3, beta = 5
+Running: sample_n = 100, run = 3, beta = 10
+Running: sample_n = 100, run = 3, beta = 15
+Running: sample_n = 100, run = 4, beta = 5
+Running: sample_n = 100, run = 4, beta = 10
+Running: sample_n = 100, run = 4, beta = 15
+Running: sample_n = 100, run = 5, beta = 5
+Running: sample_n = 100, run = 5, beta = 10
+Running: sample_n = 100, run = 5, beta = 15
+Running: sample_n = 100, run = 6, beta = 5
+Running: sample_n = 100, run = 6, beta = 10
+Running: sample_n = 100, run = 6, beta = 15
+Running: sample_n = 100, run = 7, beta = 5
+Running: sample_n = 100, run = 7, beta = 10
+Running: sample_n = 100, run = 7, beta = 15
+Running: sample_n = 100, run = 8, beta = 5
+Running: sample_n = 100, run = 8, beta = 10
+Running: sample_n = 100, run = 8, beta = 15
+Running: sample_n = 100, run = 9, beta = 5
+Running: sample_n = 100, run = 9, beta = 10
+Running: sample_n = 100, run = 9, beta = 15
+Running: sample_n = 100, run = 10, beta = 5
+Running: sample_n = 100, run = 10, beta = 10
+Running: sample_n = 100, run = 10, beta = 15
+Running: sample_n = 100, run = 11, beta = 5
+Running: sample_n = 100, run = 11, beta = 10
+Running: sample_n = 100, run = 11, beta = 15
+Running: sample_n = 100, run = 12, beta = 5
+Running: sample_n = 100, run = 12, beta = 10
+Running: sample_n = 100, run = 12, beta = 15
+Running: sample_n = 100, run = 13, beta = 5
+Running: sample_n = 100, run = 13, beta = 10
+Running: sample_n = 100, run = 13, beta = 15
+Running: sample_n = 100, run = 14, beta = 5
+Running: sample_n = 100, run = 14, beta = 10
+Running: sample_n = 100, run = 14, beta = 15
+Running: sample_n = 100, run = 15, beta = 5
+Running: sample_n = 100, run = 15, beta = 10
+Running: sample_n = 100, run = 15, beta = 15
+Running: sample_n = 100, run = 16, beta = 5
+Running: sample_n = 100, run = 16, beta = 10
+Running: sample_n = 100, run = 16, beta = 15
+Running: sample_n = 100, run = 17, beta = 5
+Running: sample_n = 100, run = 17, beta = 10
+Running: sample_n = 100, run = 17, beta = 15
+Running: sample_n = 100, run = 18, beta = 5
+Running: sample_n = 100, run = 18, beta = 10
+Running: sample_n = 100, run = 18, beta = 15
+Running: sample_n = 100, run = 19, beta = 5
+Running: sample_n = 100, run = 19, beta = 10
+Running: sample_n = 100, run = 19, beta = 15
+Running: sample_n = 100, run = 20, beta = 5
+Running: sample_n = 100, run = 20, beta = 10
+Running: sample_n = 100, run = 20, beta = 15
+Running: sample_n = 120, run = 1, beta = 5
+Running: sample_n = 120, run = 1, beta = 10
+Running: sample_n = 120, run = 1, beta = 15
+Running: sample_n = 120, run = 2, beta = 5
+Running: sample_n = 120, run = 2, beta = 10
+Running: sample_n = 120, run = 2, beta = 15
+Running: sample_n = 120, run = 3, beta = 5
+Running: sample_n = 120, run = 3, beta = 10
+Running: sample_n = 120, run = 3, beta = 15
+Running: sample_n = 120, run = 4, beta = 5
+Running: sample_n = 120, run = 4, beta = 10
+Running: sample_n = 120, run = 4, beta = 15
+Running: sample_n = 120, run = 5, beta = 5
+Running: sample_n = 120, run = 5, beta = 10
+Running: sample_n = 120, run = 5, beta = 15
+Running: sample_n = 120, run = 6, beta = 5
+Running: sample_n = 120, run = 6, beta = 10
+Running: sample_n = 120, run = 6, beta = 15
+Running: sample_n = 120, run = 7, beta = 5
+Running: sample_n = 120, run = 7, beta = 10
+Running: sample_n = 120, run = 7, beta = 15
+Running: sample_n = 120, run = 8, beta = 5
+Running: sample_n = 120, run = 8, beta = 10
+Running: sample_n = 120, run = 8, beta = 15
+Running: sample_n = 120, run = 9, beta = 5
+Running: sample_n = 120, run = 9, beta = 10
+Running: sample_n = 120, run = 9, beta = 15
+Running: sample_n = 120, run = 10, beta = 5
+Running: sample_n = 120, run = 10, beta = 10
+Running: sample_n = 120, run = 10, beta = 15
+Running: sample_n = 120, run = 11, beta = 5
+Running: sample_n = 120, run = 11, beta = 10
+Running: sample_n = 120, run = 11, beta = 15
+Running: sample_n = 120, run = 12, beta = 5
+Running: sample_n = 120, run = 12, beta = 10
+Running: sample_n = 120, run = 12, beta = 15
+Running: sample_n = 120, run = 13, beta = 5
+Running: sample_n = 120, run = 13, beta = 10
+Running: sample_n = 120, run = 13, beta = 15
+Running: sample_n = 120, run = 14, beta = 5
+Running: sample_n = 120, run = 14, beta = 10
+Running: sample_n = 120, run = 14, beta = 15
+Running: sample_n = 120, run = 15, beta = 5
+Running: sample_n = 120, run = 15, beta = 10
+Running: sample_n = 120, run = 15, beta = 15
+Running: sample_n = 120, run = 16, beta = 5
+Running: sample_n = 120, run = 16, beta = 10
+Running: sample_n = 120, run = 16, beta = 15
+Running: sample_n = 120, run = 17, beta = 5
+Running: sample_n = 120, run = 17, beta = 10
+Running: sample_n = 120, run = 17, beta = 15
+Running: sample_n = 120, run = 18, beta = 5
+Running: sample_n = 120, run = 18, beta = 10
+Running: sample_n = 120, run = 18, beta = 15
+Running: sample_n = 120, run = 19, beta = 5
+Running: sample_n = 120, run = 19, beta = 10
+Running: sample_n = 120, run = 19, beta = 15
+Running: sample_n = 120, run = 20, beta = 5
+Running: sample_n = 120, run = 20, beta = 10
+Running: sample_n = 120, run = 20, beta = 15
