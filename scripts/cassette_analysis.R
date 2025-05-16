@@ -76,8 +76,17 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 names(genes) <- annoObj$illuminaID
 
 
-# Loading validation betas. Variable is called beta.adjusted
-load("../../Volumes/Data/Project_3/validation_cohort/PurBeta_adjustedTumor_betaMatrix_V1_V2_reduced_717459commonCpGs_TNBCs_n136.RData")
+# Loading validation betas and annotations. Variable is called beta.adjusted
+load("/Volumes/Data/Project_3/validation_cohort/PurBeta_adjustedTumor_betaMatrix_V1_V2_reduced_717459commonCpGs_TNBCs_n136.RData")
+colnames(beta.adjusted) <- sapply(colnames(beta.adjusted), function(id) {
+  
+  strsplit(id, split = "\\.")[[1]][1]
+  
+})
+
+
+load("/Volumes/Data/Project_3/validation_cohort/Combined_annotations_rel4SCANB_deNovoMainNMF_distalAtac5000_supervisedSubNMF.RData")
+rownames(annotations) <- annotations$Sample
 
 #
 # DISTAL CASSETTES
@@ -85,9 +94,11 @@ load("../../Volumes/Data/Project_3/validation_cohort/PurBeta_adjustedTumor_betaM
 
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-#distal_files <- distal_files[!grepl("only", distal_files)]
-distal_files <- distal_files[grepl("only_atac_unadjusted", distal_files)]
+distal_files <- distal_files[!grepl("only", distal_files)]
+distal_files <- distal_files[!grepl("purity", distal_files)]
+distal_files <- distal_files[!grepl("only_atac_unadjusted", distal_files)]
 
+# PLOT 1. NUMBER OF CASSETTES AND SIZE PER BETA
 
 # Initialize an empty data frame
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
@@ -123,6 +134,54 @@ ggplot(summary_df, aes(x = beta)) +
        y = "Number of Cassettes") +
   scale_y_continuous(limits = c(0, 1050), sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
   theme_classic()
+
+
+# PLOT 2. PROPORTION OF CASSETTES PER BETA
+
+# Initialize empty data frame
+cassette_df <- data.frame()
+
+# Loop through files and extract cassette proportions
+for (file in distal_files) {
+  # Extract beta value
+  beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
+  
+  # Load cassette color assignments
+  cassettes <- readRDS(file)$colors
+  
+  # Create a frequency table and convert to proportions
+  cassette_table <- table(cassettes)
+  cassette_prop <- prop.table(cassette_table)
+  
+  # Store as a data frame
+  df <- as.data.frame(cassette_prop)
+  colnames(df) <- c("cassette", "proportion")
+  df$beta <- beta
+  
+  # Append to full dataframe
+  cassette_df <- rbind(cassette_df, df)
+}
+
+# Group cassette IDs with low frequency (<0.01) as "Other"
+cassette_df <- cassette_df %>%
+  group_by(beta) %>%
+  mutate(cassette = ifelse(proportion < 0.01, "Other", as.character(cassette))) %>%
+  group_by(beta, cassette) %>%
+  summarise(proportion = sum(proportion), .groups = "drop")
+
+# Convert beta to factor
+cassette_df$beta <- factor(cassette_df$beta, levels = c(5, 8, 10, 15, 20, 25))
+
+# Plot
+ggplot(cassette_df, aes(x = beta, y = proportion, fill = cassette)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(title = "Proportion of CpG Cassettes per Beta (Distal)",
+       x = "Beta",
+       y = "Proportion",
+       fill = "Cassette") +
+  theme_classic()
+
 
 
 # Plotting first cassettes with annotatios. 
@@ -234,8 +293,8 @@ for (file in distal_files) {
 # Plotting first cassettes with annotatios. 
 # List all distal files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-distal_files <- distal_files[grepl("only_atac", distal_files)]
-distal_files <- distal_files[!grepl("unadjusted", distal_files)]
+distal_files <- distal_files[!grepl("only_atac", distal_files)]
+distal_files <- distal_files[!grepl("adjusted", distal_files)]
 distal_files <- distal_files[!grepl("basal", distal_files)]
 distal_files <- distal_files[!grepl("nonBasal", distal_files)]
 
@@ -259,8 +318,11 @@ for (file in distal_files) {
   # Flatten the list to get selected CpGs
   selected_CpGs <- as.character(unlist(cpg_list))
   
+  # Use only Cpgs in validation data
+  selected_CpGs <- selected_CpGs[selected_CpGs %in% rownames(beta.adjusted)]
+  
   # Subset the adjusted beta values
-  beta_subset <- beta.adjusted[selected_CpGs, ]
+  beta_subset <- beta.adjusted[selected_CpGs, , drop = FALSE]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
@@ -269,49 +331,23 @@ for (file in distal_files) {
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Subset row annotation matrix for selected transcription factors
-  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
-  
-  # Convert to a factor to ensure proper categorical annotation
-  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
-  
-  # Define color mapping for all TFs (0 = white, 1 = black)
-  tf_colors <- list(
-    SUZ12 = c("0" = "white", "1" = "black"),
-    EZH2  = c("0" = "white", "1" = "black"),
-    FOS   = c("0" = "white", "1" = "black"),
-    STAT3 = c("0" = "white", "1" = "black"),
-    ESR1  = c("0" = "white", "1" = "black"),
-    GATA3 = c("0" = "white", "1" = "black"),
-    FOXA1 = c("0" = "white", "1" = "black")
-  )
-  
-  #Define ATAC annotation
-  atac_annotation <- rowAnnotation(df=data.frame("ATAC"=as.factor(annoObj$hasAtacOverlap[annoObj$illuminaID %in% selected_CpGs])),
-                                   col = list(ATAC = c("0" = "white", "1" = "black")))
-  
-  # Create row annotation object
-  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
   # Epitype annotations
-  pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
-  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
-  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
-  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
-  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
-  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  pam50_annotations <- annotations[colnames(beta_subset), "NCN_PAM50"]
+  tnbc_annotation <- annotations[colnames(beta_subset), "TNBCtype4"]
+  epi_annotation <- annotations[colnames(beta_subset), "NMF_ATAC_finalSubClusters"]
+  im_annotation <- annotations[colnames(beta_subset), "TNBCtype_IM"]
+
   
   # Create column annotation object
   column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                          TNBC = tnbc_annotation,
-                                         HRD = HRD_annotation,
                                          Epitype = epi_annotation,
                                          IM = im_annotation,
                                          col = list(
                                            "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
-                                           "IM"=c("Negative"="grey", "Positive"="black"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+                                           "IM"=c("0"="grey", "1"="black", "UNS"="white"),
+                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
                                            "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
                                                        "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
   )
@@ -326,12 +362,10 @@ for (file in distal_files) {
                      row_title = row_labels,  
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
                      top_annotation = column_annotation,
-                     left_annotation = row_annotation,
-                     right_annotation = atac_annotation,
                      use_raster = FALSE)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, "_atac_VALIDATION.pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.pdf"), width = 14, height = 10)  # Adjust width and height as needed
   draw(heatmap)
   dev.off()
 }
@@ -350,7 +384,7 @@ promoter_files <- promoter_files[!grepl("not_purity_adjusted", promoter_files)]
 summary_df <- data.frame(beta = numeric(), num_cassettes = numeric(), mean_cassette_length = numeric())
 
 for (file in promoter_files) {
-  
+
   # Getting beta
   beta <- as.numeric(sub(".*cassettes_beta_(\\d+).*\\.rds", "\\1", file))
   
@@ -410,7 +444,7 @@ for (file in promoter_files) {
   selected_CpGs <- unlist(cpg_list)
   
   # Subset the adjusted beta values
-  beta_subset <- betaNew[selected_CpGs, ]
+  beta_subset <- betaAdj[selected_CpGs, ]
   
   # Create a cassette grouping factor
   cassette_factor <- factor(promoter$colors[selected_CpGs], levels = selected_cassettes)

@@ -1,6 +1,5 @@
 #! usr/bin/Rscript
 
-
 library(ComplexHeatmap)
 library(circlize)
 library(ggplot2)
@@ -11,8 +10,6 @@ library(survminer)
 library(tidyr)
 library(dplyr)
 library(patchwork)
-
-
 
 #
 # LOAD DATA
@@ -50,7 +47,7 @@ rownames(u.frame) <- u.frame$PD_ID
 # PLOTTING CPGS AFFECTING 
 #
 
-current_gene_id = "KIT"
+current_gene_id = "BRCA1"
 
   
   pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
@@ -86,7 +83,7 @@ current_gene_id = "KIT"
   )
   # Generate bottom annotation
   bottom_annotation <- HeatmapAnnotation(
-    "FPKM" = anno_barplot(log(as.numeric(fpkm_data[current_gene_id, colnames(betaAdj)])+1))
+    "FPKM" = anno_barplot(as.numeric(fpkm_data[current_gene_id, colnames(betaAdj)]))
   )
   
   # Updated left_annotation with color scale
@@ -294,7 +291,7 @@ current_gene_id = "KIT"
 # PLOTTING TILEPLOT OF PROMOTER HYPERMETHYLATION OF SELECTED GENES
 #
 
-gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16", "SAMD9L")
+gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16")
 
 clusters_methylation <- data.frame(matrix(ncol = ncol(betaAdj), nrow = length(gene_ids)))
 colnames(clusters_methylation) <- colnames(betaAdj)
@@ -326,24 +323,21 @@ for(current_gene_id in gene_ids) {
 
 # Convert the character values to numeric for the entire matrix
 # "hypermethylated" = 1, "hypomethylated" = 0
-
 numeric_matrix <- apply(clusters_methylation, c(1, 2), function(x) {
   if (x == "Hypermethylated") {
     return(1)
   } else if (x == "Hypomethylated") {
     return(0)
   } else {
-    return(NA)  # Handle any other values (if any)
+    return(NA)
   }
 })
 
-agreement <- colSums(numeric_matrix)
+# Getting number of hypermethylated samples
+agreement_hyper <- colSums(numeric_matrix == 1)
 
-agreement_categories <- factor(agreement, levels = c(0, 1, 2, 3, 4, 5), 
-                               labels = c("5/5", "4/5", "3/5", "3/5", "4/5", "5/5"))
 
 # Create the heatmap 
-
 top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                     TNBC = tnbc_annotation,
                                     IM = im_annotation,
@@ -357,14 +351,17 @@ top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                     )
 )
 
+agreement_hyper_annotation <- HeatmapAnnotation("Consenus" = anno_barplot(unname(agreement_hyper)))
+
 Heatmap(clusters_methylation,
         col = c("red", "blue"),
         top_annotation = top_annotation,
+        bottom_annotation = agreement_hyper_annotation,
         show_column_names = FALSE,
         show_row_names = TRUE,
         name = "Methylation",
-        cluster_rows = TRUE,
-        cluster_columns = TRUE,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
         column_split = as.factor(ifelse(pam50_annotations == "Basal", "Basal", "NonBasal")))
 
 

@@ -4,6 +4,7 @@ library(ggplot2)
 library(survival)
 library(survminer)
 library(ggrepel)
+library(energy)
 
 
 #
@@ -17,15 +18,15 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_15.csv")
+prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(prom_cassettes) <- prom_cassettes$Cassette
 prom_cassettes$Cassette <- NULL
 
-dis_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_15.csv")
+dis_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(dis_cassettes) <- dis_cassettes$Cassette
 dis_cassettes$Cassette <- NULL
 
-prox_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_15.csv")
+prox_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_10.csv")
 rownames(prox_cassettes) <- prox_cassettes$Cassette
 prox_cassettes$Cassette <- NULL
 
@@ -59,16 +60,82 @@ main_var <- as.numeric(x[colnames(prom_cassettes),"TILs"])
 # Define the variables to test
 variables <- rownames(prom_cassettes)
 
-# Compute Kendall’s Tau and p-values
+# Compute correlations and wilocoxon p values. Kendall + Distance
+
 results <- data.frame(
   Cassette = variables,
-  Tau = sapply(variables, function(v) cor.test(main_var, as.numeric(prom_cassettes[as.character(v),]), method = "kendall")$estimate),
-  P_value = sapply(variables, function(v) cor.test(main_var, as.numeric(prom_cassettes[as.character(v),]), method = "kendall")$p.value)
+  Wilcoxon_P_value = sapply(variables, function(v) {
+    y <- as.numeric(prom_cassettes[as.character(v), ])
+    if (all(is.na(y))) return(NA)
+    
+    # Keep only non-NA pairs
+    keep <- complete.cases(main_var, y)
+    x <- main_var[keep]
+    y <- y[keep]
+    
+    if (length(unique(y)) < 2) return(NA)
+    
+    # K-means clustering into 2 groups
+    cluster <- kmeans(y, centers = 2)$cluster
+    
+    # Wilcoxon test between groups for TIL levels
+    wilcox.test(x ~ cluster)$p.value
+  }),
+  
+  Kendall_Tau = sapply(variables, function(v) {
+    y <- as.numeric(prom_cassettes[as.character(v), ])
+    if (all(is.na(y))) return(NA)
+    
+    # Keep only non-NA pairs
+    keep <- complete.cases(main_var, y)
+    x <- main_var[keep]
+    y <- y[keep]
+    
+    # Kendall's Tau correlation
+    cor.test(x, y, method = "kendall")$estimate
+  }),
+  
+  Distance_Correlation = sapply(variables, function(v) {
+    y <- as.numeric(prom_cassettes[as.character(v), ])
+    if (all(is.na(y))) return(NA)
+    
+    # Keep only non-NA pairs
+    keep <- complete.cases(main_var, y)
+    x <- main_var[keep]
+    y <- y[keep]
+    
+    # Distance Correlation
+    dcor(x, y)
+  }),
+  
+  Mean_TIL_Group1 = sapply(variables, function(v) {
+    y <- as.numeric(prom_cassettes[as.character(v), ])
+    keep <- complete.cases(main_var, y)
+    x <- main_var[keep]
+    y <- y[keep]
+    if (length(unique(y)) < 2) return(NA)
+    cluster <- kmeans(y, centers = 2)$cluster
+    mean(x[cluster == 1])
+  }),
+  
+  Mean_TIL_Group2 = sapply(variables, function(v) {
+    y <- as.numeric(prom_cassettes[as.character(v), ])
+    keep <- complete.cases(main_var, y)
+    x <- main_var[keep]
+    y <- y[keep]
+    if (length(unique(y)) < 2) return(NA)
+    cluster <- kmeans(y, centers = 2)$cluster
+    mean(x[cluster == 2])
+  })
 )
 
+results$Wilcoxon_FDR <- p.adjust(results$Wilcoxon_P_value, method = "fdr")
+results$Wilcoxon_Bonf <- p.adjust(results$Wilcoxon_P_value, method = "bonferroni")
+
+
 # Apply multiple testing correction
-results$P_adj_Bonf <- p.adjust(results$P_value, method = "bonferroni")
-results$P_adj_FDR <- p.adjust(results$P_value, method = "fdr")  # Recommended for multiple comparisons
+results$P_adj_Bonf <- p.adjust(results$Wilcoxon_P_value, method = "bonferroni")
+results$P_adj_FDR <- p.adjust(results$Wilcoxon_P_value, method = "fdr")  # Recommended for multiple comparisons
 
 #Change rownames
 rownames(results) <- results$Cassette
@@ -76,14 +143,14 @@ rownames(results) <- results$Cassette
 # Plotting results. Volcano plot
 
 # Convert p-values to -log10 scale
-results$logP <- -log10(results$P_adj_Bonf)
+results$logP <- -log10(results$P_adj_FDR)
 
 # Define significance threshold
 threshold <- 0.05
 
 # Create the volcano plot
-ggplot(results, aes(x = Tau, y = logP, label = Cassette)) +
-  geom_point(aes(color = P_adj_Bonf < threshold), size = 3, alpha = 0.8) + 
+ggplot(results, aes(x = Kendall_Tau, y = logP, label = Cassette)) +
+  geom_point(aes(color = P_adj_FDR < threshold), size = 3, alpha = 0.8) + 
   scale_color_manual(values = c("grey", "red")) +
   geom_text(vjust = 1.5, size = 4, check_overlap = TRUE) +  # Add labels
   theme_minimal() +
@@ -101,13 +168,13 @@ ggplot(results, aes(x = Tau, y = logP, label = Cassette)) +
 
 
 # Assuming your dataframe is named df
-results_sorted <- results[order(-abs(results$Tau)), ]
+results_sorted <- results[order(-abs(results$Kendall_Tau)), ]
 
 head(results_sorted, 30)
 
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_8.rds")
-data <- promoter_15$colors
-cpgs <- names(data)[data == 8]
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+data <- promoter_10$colors
+cpgs <- names(data)[data == 32]
 genes[cpgs]
 
 
@@ -225,111 +292,6 @@ cpgs <- names(data)[data == 6]
 genes[cpgs]
 
 
-# Analyse genes with the highest associations
-
-
-# GBP4
-
-# Define variables
-x_values <- as.numeric(prom_cassettes["141",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["GBP4", colnames(prom_cassettes)])  # Y-axis variable
-tils_values <- as.numeric(main_var) / 100  
-
-# Create a dataframe for ggplot
-plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
-
-# Create scatterplot with both color and size representing TILs
-ggplot(plot_data, aes(x = X, y = Y)) +
-  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
-  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
-  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
-  labs(x = "Cassette PC1", 
-       y = "GBP4 Expression (FPKM)", 
-       size = "TILs (%)") +  # Keep only the size label
-  theme_classic()
-
-
-# ZBP1
-
-# Define variables
-x_values <- as.numeric(prom_cassettes["547",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["ZBP1", colnames(prom_cassettes)])  # Y-axis variable
-tils_values <- as.numeric(main_var) / 100  
-
-# Create a dataframe for ggplot
-plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
-
-# Create scatterplot with both color and size representing TILs
-ggplot(plot_data, aes(x = X, y = Y)) +
-  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
-  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
-  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
-  labs(x = "Cassette PC1", 
-       y = "ZBP1 Expression (FPKM)", 
-       size = "TILs (%)") +  # Keep only the size label
-  theme_classic()
-
-# CELF2
-
-# Define variables
-x_values <- as.numeric(prox_cassettes["6",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["CELF2", colnames(prom_cassettes)])  # Y-axis variable
-tils_values <- as.numeric(main_var) / 100  
-
-# Create a dataframe for ggplot
-plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
-
-# Create scatterplot with both color and size representing TILs
-ggplot(plot_data, aes(x = X, y = Y)) +
-  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
-  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
-  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
-  labs(x = "Cassette PC1", 
-       y = "CELF2 Expression (FPKM)", 
-       size = "TILs (%)") +  # Keep only the size label
-  theme_classic()
-
-# PPP1R36
-
-# Define variables
-x_values <- as.numeric(prom_cassettes["250",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["PPP1R36", colnames(prom_cassettes)])  # Y-axis variable
-tils_values <- as.numeric(main_var) / 100  
-
-# Create a dataframe for ggplot
-plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
-
-# Create scatterplot with both color and size representing TILs
-ggplot(plot_data, aes(x = X, y = Y)) +
-  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
-  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
-  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
-  labs(x = "Cassette PC1", 
-       y = "PPP1R36 Expression (FPKM)", 
-       size = "TILs (%)") +  # Keep only the size label
-  theme_classic()
-
-# PCDHGA2
-
-# Define variables
-x_values <- as.numeric(prom_cassettes["183",])  # X-axis variable
-y_values <- as.numeric(fpkm_data["PCDHGA2", colnames(prom_cassettes)])  # Y-axis variable
-tils_values <- as.numeric(main_var) / 100  
-
-# Create a dataframe for ggplot
-plot_data <- data.frame(X = x_values, Y = y_values, TILs = tils_values)
-
-# Create scatterplot with both color and size representing TILs
-ggplot(plot_data, aes(x = X, y = Y)) +
-  geom_point(aes(color = TILs, size = TILs), alpha = 0.7) +
-  scale_color_gradient(low = "black", high = "red") +  # Black-to-Red gradient
-  scale_size(range = c(0.3, 1.5)) +  # Adjust point sizes
-  labs(x = "Cassette PC1", 
-       y = "PCDHGA2 Expression (FPKM)", 
-       size = "TILs (%)") +  # Keep only the size label
-  theme_classic()
-
-
 #
 # IMPACT IN OUTCOME
 #
@@ -384,14 +346,19 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
         axis.title = element_text(size = 14)) +
   ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
 
-my_genes <- genes[names(promoter_15$colors)[promoter_15$colors==250]]
-results[548,]
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+data <- promoter_10$colors
+cpgs <- names(data)[data == 233]
+genes[cpgs]
 
-# Plotting metastasis type vs cassette 183
+heatmap(betaAdj[cpgs,])
+
+
+# Plotting metastasis type vs cassette 233
 
 metastasis_type <- as.character(x[colnames(prom_cassettes), "Metastasis_type"])
 metastasis_type[is.na(metastasis_type)] <- "NA"  # Convert NA to a string
-boxplot(as.numeric(prom_cassettes["183",]) ~ as.factor(metastasis_type),
+boxplot(as.numeric(prom_cassettes["233",]) ~ as.factor(metastasis_type),
         xlab="Metastasis type",
         ylab="Cassette PC1",
         main=paste0("KW p=", round(kruskal.test(as.numeric(prom_cassettes["183", ]) ~ as.factor(metastasis_type))$p.value, 5)),
