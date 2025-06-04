@@ -39,15 +39,23 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 
 names(genes) <- annoObj$illuminaID
 
+# Create a new grouped feature class
+annoObj$CpG_context <- feature_class_grouped <- dplyr::case_when(
+  annoObj$featureClass %in% c("distal", "distal body") ~ "Distal",
+  annoObj$featureClass %in% c("promoter") ~ "Promoter",
+  annoObj$featureClass %in% c("proximal dn", "proximal up") ~ "Proximal",
+  TRUE ~ as.character(annoObj$featureClass) 
+)
+
 # Reading PDL1 TLS annotation. Matrix is called u.frame
-load("PhD/Projects/project_3/summarized_TPS_data_sampleLevel.RData")
+load("PhD/Projects/project_3/data/summarized_TPS_data_sampleLevel.RData")
 rownames(u.frame) <- u.frame$PD_ID
 
 #
 # PLOTTING CPGS AFFECTING 
 #
 
-current_gene_id = "BRCA1"
+current_gene_id = "DENND1A"
 
   
   pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
@@ -64,14 +72,14 @@ current_gene_id = "BRCA1"
                                       HRD = HRD_annotation,
                                       IM = im_annotation,
                                       Epitype = epi_annotation,
-                                      TILs = anno_points(tils_annotation,
-                                                         ylim=c(0,100),
-                                                         size=unit(0.75, "mm"),
-                                                         axis_param = list(
-                                                           side="left",
-                                                           at=c(0,25,50,75,100),
-                                                           labels=c("0","25","50","75","100")
-                                                         )),
+                                       TILs = anno_points(tils_annotation,
+                                                          ylim=c(0,100),
+                                                          size=unit(0.75, "mm"),
+                                                          axis_param = list(
+                                                            side="left",
+                                                            at=c(0,25,50,75,100),
+                                                            labels=c("0","25","50","75","100")
+                                                          )),
                                       col = list(
                                         "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
                                         "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
@@ -89,14 +97,16 @@ current_gene_id = "BRCA1"
   # Updated left_annotation with color scale
   right_annotation <- rowAnnotation(
     "Normal beta" = rowMeans(betaNorm[names(genes)[genes == current_gene_id],]),
-    "ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
+    #"ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
     col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")),
                "ATAC" = c("0" = "white", "1"= "black"))
   )
   
   # CpG context annotation
-  left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]
-  )
+  left_annotation <- rowAnnotation("Context"= annoObj$CpG_context[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
+                                   col=list("Context"=c("Distal" = "#f8766d", 
+                                                        "Promoter" = "#00ba38", 
+                                                        "Proximal" = "#619cff")))
   
   # Atac annotation
   
@@ -124,7 +134,7 @@ current_gene_id = "BRCA1"
     cluster_rows = FALSE,
     row_order = order(annoObj$start[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]),
     cluster_columns = TRUE,
-    show_row_names = TRUE,
+    show_row_names = FALSE,
     show_column_names = FALSE,
     show_row_dend = FALSE,
     column_split = gbp4_promoter_state,
@@ -149,15 +159,16 @@ current_gene_id = "BRCA1"
     TILs = as.numeric(x[colnames(betaAdj), "TILs"]),
     PDL1_CPS = as.numeric(x[colnames(betaAdj), "PDL1_CPS"]),
     PDL1_TPS = sapply(u.frame[colnames(betaAdj), "PDL1_TPS"], function(x) {
-      if (is.na(x)) {NA} 
-      else if (x >= 10) {2} 
-      else if (x >= 1) {1} 
+      if (is.na(x)) {NA}
+      else if (x >= 10) {2}
+      else if (x >= 1) {1}
       else {0}
     }
-    ), 
+    ),
     Methylation_State = gbp4_promoter_state,
     HRD = as.factor(x[colnames(betaAdj), "HRD.2.status"])
   )
+  
   
   # EXPRESSION BOXPLOT
   
@@ -170,7 +181,7 @@ current_gene_id = "BRCA1"
     geom_jitter(width = 0.2, size = 1, alpha = 0.5) +  # Jittered points for visibility
     scale_fill_manual(values = c("indianred1", "cadetblue1")) +  # Custom fill colors
     theme_classic(base_size = 14) +  # Classic theme
-    labs(x = "Promoter Methylation State", y = "GBP4 FPKM") +
+    labs(x = "Promoter Methylation State", y = "CARD16 FPKM") +
     theme(legend.position = "none") +  # Hide legend
     stat_compare_means(method = "wilcox.test", label = "p.format", 
                        comparisons = list(c("Hypomethylated", "Hypermethylated")), 
@@ -365,6 +376,18 @@ Heatmap(clusters_methylation,
         column_split = as.factor(ifelse(pam50_annotations == "Basal", "Basal", "NonBasal")))
 
 
+Heatmap(clusters_methylation,
+        col = c("red", "blue"),
+        top_annotation = top_annotation,
+        bottom_annotation = agreement_hyper_annotation,
+        show_column_names = FALSE,
+        show_row_names = TRUE,
+        name = "Methylation",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_split = as.factor(tnbc_annotation))
+
+
 agreement_data <- data.frame(
   Agreement = agreement_categories
 )
@@ -453,7 +476,7 @@ genes_to_test <- c("SOX10", "WIF1", "SFRP1", "FASN", "SREBF1", "MSMO1",
 
 
 # Plotting
-gene_ref <- "OAS2"
+gene_ref <- "KDM6B"
 par(mar=c(1,1,1,1))
 plot_list <- list()
 
@@ -472,6 +495,4 @@ for (gene in genes_to_test) {
 }
 
 wrap_plots(plot_list)
-
-
 

@@ -22,7 +22,7 @@ rownames(x) <- x$PD_ID
 #
 
 # Example cassette file
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
 # COMPUTE VARIANCE
 
@@ -33,7 +33,7 @@ variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 promoter_cpgs <- annoObj$illuminaID[which(annoObj$featureClass=="promoter")]
 
 variance_of_betas_promoter <- apply(betaAdj[promoter_cpgs,], MARGIN = 1, FUN=var)
-cassettes <- sort(unique(promoter_15$colors))
+cassettes <- sort(unique(promoter_10$colors))
 
 # Initialize a dataframe to store results
 cassette_stats <- data.frame(
@@ -45,7 +45,7 @@ cassette_stats <- data.frame(
 
 for (cassette in cassettes) {
   # Subset rows belonging to the current cassette
-  cassette_rows <- names(which(promoter_15$colors == cassette))
+  cassette_rows <- names(which(promoter_10$colors == cassette))
   
   if (length(cassette_rows) > 0) {
     # Compute variance of betas for the cassette
@@ -119,7 +119,7 @@ plot(density_data,
 polygon(density_data, col = rgb(0, 0, 1, 0.3), border = NA)
 
 # Identify CpG names for cassette 6
-cpg_sites <- names(promoter_15$colors)[promoter_15$colors == cas_num]
+cpg_sites <- names(promoter_10$colors)[promoter_10$colors == cas_num]
 
 if (length(cpg_sites) > 20) {
   
@@ -158,7 +158,7 @@ df_combined <- data.frame()
 # Loop through different sets of CpGs (top 1000, 5000, etc.)
 for (top_n in list(top_1000, top_5000, top_10000, top_17725)) {
   # Count frequencies for each level based on the current top CpG set
-  level_counts <- table(as.factor(promoter_15$colors[top_n]))
+  level_counts <- table(as.factor(promoter_10$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
   infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
@@ -195,7 +195,7 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 #
 
 # Example cassette file
-distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
+distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 
 # COMPUTE VARIANCE
 
@@ -206,7 +206,7 @@ variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 distal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="distal") | (annoObj$featureClass=="distal body") ) )]
 
 variance_of_betas_distal <- apply(betaAdj[distal_cpgs,], MARGIN = 1, FUN=var)
-cassettes <- sort(unique(distal_15$colors))
+cassettes <- sort(unique(distal_10$colors))
 
 # Initialize a dataframe to store results
 cassette_stats <- data.frame(
@@ -218,7 +218,7 @@ cassette_stats <- data.frame(
 
 for (cassette in cassettes) {
   # Subset rows belonging to the current cassette
-  cassette_rows <- names(which(distal_15$colors == cassette))
+  cassette_rows <- names(which(distal_10$colors == cassette))
   
   if (length(cassette_rows) > 0) {
     # Compute variance of betas for the cassette
@@ -292,7 +292,7 @@ plot(density_data,
 polygon(density_data, col = rgb(0, 0, 1, 0.3), border = NA)
 
 # Identify CpG names for cassette 6
-cpg_sites <- names(distal_15$colors)[distal_15$colors == cas_num]
+cpg_sites <- names(distal_10$colors)[distal_10$colors == cas_num]
 
 if (length(cpg_sites) > 20) {
   
@@ -332,7 +332,7 @@ df_combined <- data.frame()
 # Loop through different sets of CpGs (top 1000, 5000, etc.)
 for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_34481)) {
   # Count frequencies for each level based on the current top CpG set
-  level_counts <- table(as.factor(distal_15$colors[top_n]))
+  level_counts <- table(as.factor(distal_10$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
   infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.01])
@@ -370,7 +370,7 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 
 
 # Example cassette file
-proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")
 
 # COMPUTE VARIANCE
 
@@ -381,7 +381,7 @@ variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 proximal_cpgs <- annoObj$illuminaID[which( ( (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
 
 variance_of_betas_proximal <- apply(betaAdj[proximal_cpgs,], MARGIN = 1, FUN=var)
-cassettes <- sort(unique(proximal_15$colors))
+cassettes <- sort(unique(proximal_10$colors))
 
 # Initialize a dataframe to store results
 cassette_stats <- data.frame(
@@ -393,7 +393,7 @@ cassette_stats <- data.frame(
 
 for (cassette in cassettes) {
   # Subset rows belonging to the current cassette
-  cassette_rows <- names(which(proximal_15$colors == cassette))
+  cassette_rows <- names(which(proximal_10$colors == cassette))
   
   if (length(cassette_rows) > 0) {
     # Compute variance of betas for the cassette
@@ -468,7 +468,7 @@ plot(density_data,
 polygon(density_data, col = rgb(0, 0, 1, 0.3), border = NA)
 
 # Identify CpG names for cassette 6
-cpg_sites <- names(proximal_15$colors)[proximal_15$colors == cas_num]
+cpg_sites <- names(proximal_10$colors)[proximal_10$colors == cas_num]
 
 if (length(cpg_sites) > 20) {
   
@@ -508,7 +508,7 @@ df_combined <- data.frame()
 # Loop through different sets of CpGs (top 1000, 5000, etc.)
 for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_33536)) {
   # Count frequencies for each level based on the current top CpG set
-  level_counts <- table(as.factor(proximal_15$colors[top_n]))
+  level_counts <- table(as.factor(proximal_10$colors[top_n]))
   
   # Identify levels with frequency less than 0.5 %
   infrequent_levels <- names(level_counts[level_counts < length(top_n) * 0.05])
@@ -548,15 +548,15 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
 
 # Cassettes labels
-proximal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")$colors
-promoter_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")$colors
-distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")$colors
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")$colors
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")$colors
+distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")$colors
 
 
 # Merging labels
-cpg_labels <- c(sapply(proximal_5, function(x) {paste0("proximal_", x)}),
-                sapply(distal_5, function(x) {paste0("distal_", x)}),
-                sapply(promoter_5, function(x) {paste0("promoter_", x)}))
+cpg_labels <- c(sapply(proximal_10, function(x) {paste0("proximal_", x)}),
+                sapply(distal_10, function(x) {paste0("distal_", x)}),
+                sapply(promoter_10, function(x) {paste0("promoter_", x)}))
 
 # Initialize a dataframe to store results
 cassette_stats <- data.frame(
@@ -593,14 +593,13 @@ top_5000 <- names(sort(variance_of_betas, decreasing = T)[1:5000])
 top_10000 <- names(sort(variance_of_betas, decreasing = T)[1:10000])
 top_20000 <- names(sort(variance_of_betas, decreasing = T)[1:20000])
 top_30000 <- names(sort(variance_of_betas, decreasing = T)[1:30000])
-top_50000 <- names(sort(variance_of_betas, decreasing = T)[1:50000])
 
 
 # Create a combined data frame for top 1000, 5000, 10000, and 17725
 df_combined <- data.frame()
 
 # Loop through different sets of CpGs (top 1000, 5000, etc.)
-for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_30000, top_50000)) {
+for (top_n in list(top_1000, top_5000, top_10000, top_20000, top_30000)) {
   # Count frequencies for each level based on the current top CpG set
   level_counts <- table(as.factor(cpg_labels[top_n]))
   
@@ -628,8 +627,7 @@ top_sets <- list(
   `Top 5000` = top_5000,
   `Top 10000` = top_10000,
   `Top 20000` = top_20000,
-  `Top 30000` = top_30000,
-  `Top 50000` = top_50000
+  `Top 30000` = top_30000
 )
 
 violin_df <- do.call(rbind, lapply(names(top_sets), function(set_name) {
@@ -639,14 +637,45 @@ violin_df <- do.call(rbind, lapply(names(top_sets), function(set_name) {
 
 
 # Define the order for the top CpG sets and the cassettes
-top_cpg_order <- c("Top 1000", "Top 5000", "Top 10000", "Top 20000","Top 30000","Top 50000")
+top_cpg_order <- c("Top 1000", "Top 5000", "Top 10000", "Top 20000","Top 30000")
+
+cassette_colors <- c(
+  # Distal (reds/oranges)
+  "distal_0" = "#a63603",
+  "distal_1" = "#fee090",
+  "distal_2" = "#d73027",
+  "distal_3" = "#fdae61",
+  "distal_4" = "#e6550d",
+  "distal_5" = "#f46d43",
+  "distal_6" = "#fc8d59",
+  
+  # Proximal (blues)
+  "proximal_1" = "#c6dbef",
+  "proximal_2" = "#9ecae1",
+  "proximal_3" = "#6baed6",
+  "proximal_4" = "#4292c6",
+  "proximal_5" = "#2171b5",
+  "proximal_6" = "#084594",
+  
+  # Promoter (greens)
+  "promoter_1" = "#a1d99b",
+  "promoter_2" = "#74c476",
+  "promoter_3" = "#41ab5d",
+  "promoter_4" = "#238b45",
+  "promoter_5" = "#005a32",
+  
+  # Other
+  "Others" = "grey"
+)
+
 
 # First plot: Stacked bar (relative proportions)
 bar_plot <- ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order), 
                                     y = Frequency, fill = factor(Cassette))) +
   geom_bar(stat = "identity", position = "fill") +
-  labs(x = "Cassette", y = "Frequency", fill = "Cassettes") +
-  theme_classic() +
+  scale_fill_manual(values = cassette_colors) +
+  labs(x = NULL, y = "Frequency", fill = "Cassettes") +
+  theme_bw(base_size = 14) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Second plot: Violin + boxplot (variance)
@@ -654,43 +683,17 @@ violin_plot <- ggplot(violin_df, aes(x = factor(Top_CPG_Set, levels = top_cpg_or
   geom_violin(fill = "#999999", color = "black") +
   geom_boxplot(width = 0.1) +
   labs(x = NULL, y = "CpG Variance") +
-  theme_classic() +
+  theme_bw(base_size = 14) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 
-# Third plot: Mean and sd of variance of each cassette.
-
-# Add group based on name prefix
-cassette_stats$group <- sapply(cassette_stats$cassette, function(x) {
-  if (grepl("^proximal", x)) {
-    return("Proximal")
-  } else if (grepl("^promoter", x)) {
-    return("Promoter")
-  } else if (grepl("^distal", x)) {
-    return("Distal")
-  } 
-})
-
-# Set cassette factor levels manually based on desired group order
-cassette_stats$cassette <- factor(cassette_stats$cassette, levels = rev(cassette_stats$cassette[order(cassette_stats$group)]))
-
-# Plot
-variance_per_cassette <- ggplot(cassette_stats[cassette_stats$cassette %in% df_combined$Cassette,], aes(x = cassette, y = mean_var, fill = group)) +
-  geom_bar(stat = "identity") +
-  geom_errorbar(aes(ymin = mean_var - sd_var, ymax = mean_var + sd_var), width = 0.2) +
-  coord_flip() +
-  labs(x = "Cassette", y = "Mean Variance", fill = "Group") +
-  theme_classic() +
-  theme(legend.position = "none")
 
 # Combine all three plots
 combined_1 <- violin_plot / bar_plot + plot_layout(
-  heights = unit(c(1,12),c("null","cm")))
+  heights = unit(c(1,11),c("null","cm")))
   
-combined_plot <- combined_1 | variance_per_cassette + plot_layout(
-  widths = unit(c(3,45),c("cm","null")))
 
 # Print
-combined_plot
+combined_1
 
 

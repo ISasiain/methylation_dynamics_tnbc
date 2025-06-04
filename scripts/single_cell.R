@@ -10,20 +10,20 @@ library(reshape2)
 # Loading data
 #
 
-only_tum <- readRDS("/Volumes/Data/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCTum.rds")
+only_tum <- readRDS("/Volumes/Data/Project_3/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCTum.rds")
 only_tum <- UpdateSeuratObject(only_tum)
 
-only_str <- readRDS("/Volumes/Data/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCSub.rds")
+only_str <- readRDS("/Volumes/Data/Project_3/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCSub.rds")
 only_str <- UpdateSeuratObject(only_str)
 
-only_tc <- readRDS("/Volumes/Data/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCTC.rds")
+only_tc <- readRDS("/Volumes/Data/Project_3/single_cell_brca/gse161529/GSE161529/seurat_objects/SeuratObject_TNBCTC.rds")
 only_tc <- UpdateSeuratObject(only_tc)
 
 
 # GENES OF INTEREST IN CANCER CELLS
 
 # Plotting expression of genes of interest in tumour cells
-DotPlot(only_tum, features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L", "CD274", "AR", "FOXA1", "FOXC1", "ELF5"), group.by = "group", assay = "RNA") + RotatedAxis()
+DotPlot(only_tum, features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L", "IL18R1", "BATF2", "CD69"), group.by = "group", assay = "RNA") + RotatedAxis()
 
 
 # STROMAL AND IMMUNE CELLS PER SAMPLE

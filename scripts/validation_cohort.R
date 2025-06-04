@@ -26,6 +26,13 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 
 names(genes) <- annoObj$illuminaID
 
+# Reading cassettes detected in discovery cohort
+
+# PROMOTER
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+
 
 #
 # CONVERT ENSEMBL IDS INTO GENE IDS
@@ -78,8 +85,15 @@ promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_p
 # Generating annotation for heatmap
 tnbc_annotation <- annotations[,"TNBCtype4"]
 im_annotation <- annotations[,"TNBCtype_IM"]
-pam50_annotation <- annotations[,"majorityClass"]
+im_annotation <- sapply(im_annotation, function(x) {
+  
+  if (is.na(x)) {NA}
+  else if (x == 1) {"Positive"}
+  else if (x == 0) {"Negative"}
+})
+
 epi_annotation <- annotations[,"NMF_ATAC_finalSubClusters"]
+pam50_annotation <- annotations[,"NCN_PAM50"]
 
 
 # Generate bottom annotation
@@ -112,4 +126,200 @@ boxplot(
     ylab="FPKM"
 )
 
+
+#
+# PLOTTING TILEPLOT OF PROMOTER HYPERMETHYLATION OF SELECTED GENES
+#
+
+gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16")
+
+clusters_methylation <- data.frame(matrix(ncol = ncol(beta.adjusted), nrow = length(gene_ids)))
+colnames(clusters_methylation) <- colnames(beta.adjusted)
+rownames(clusters_methylation) <- gene_ids
+
+for(current_gene_id in gene_ids) {
+  
+  # Cluster based on methylation
+  cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
+                   annoObj$illuminaID[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]])
+  
+  cluster_promoter <- kmeans(t(beta.adjusted[names(cpgs)[cpgs=="promoter"],]), centers = 2)
+  
+  # Determine hypo and hypermethylated cluster
+  promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_promoter$cluster==1]) >
+                        mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_promoter$cluster==2])) {
+    
+    as.factor(ifelse(cluster_promoter$cluster == 1, "Hypermethylated", "Hypomethylated"))
+    
+  } else {
+    
+    as.factor(ifelse(cluster_promoter$cluster == 2, "Hypermethylated", "Hypomethylated"))
+    
+  }
+  
+  # Adding data to dataframe
+  clusters_methylation[current_gene_id,] <- promoter_state
+}
+
+# Convert the character values to numeric for the entire matrix
+# "hypermethylated" = 1, "hypomethylated" = 0
+numeric_matrix <- apply(clusters_methylation, c(1, 2), function(x) {
+  if (x == "Hypermethylated") {
+    return(1)
+  } else if (x == "Hypomethylated") {
+    return(0)
+  } else {
+    return(NA)
+  }
+})
+
+
+# Getting number of hypermethylated samples
+agreement_hyper <- colSums(numeric_matrix == 1)
+
+# Defining annotations
+top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
+                                    TNBC = tnbc_annotation,
+                                    IM = im_annotation,
+                                    Epitype = epi_annotation,
+                                    col = list(
+                                      "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                      "IM"=c("Negative"="grey", "Positive"="black"),
+                                      "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
+                                      "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                  "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue")
+                                    )
+)
+
+agreement_hyper_annotation <- HeatmapAnnotation("Consenus" = anno_barplot(unname(agreement_hyper)))
+
+# Plotting
+Heatmap(clusters_methylation,
+        col = c("red", "blue"),
+        top_annotation = top_annotation,
+        bottom_annotation = agreement_hyper_annotation,
+        show_column_names = FALSE,
+        show_row_names = TRUE,
+        name = "Methylation",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_split = as.factor(ifelse(pam50_annotation == "Basal", "Basal", "NonBasal")))
+
+
+agreement_data <- data.frame(
+  Agreement = agreement_categories
+)
+
+
+Heatmap(clusters_methylation,
+        col = c("red", "blue"),
+        top_annotation = top_annotation,
+        bottom_annotation = agreement_hyper_annotation,
+        show_column_names = FALSE,
+        show_row_names = TRUE,
+        name = "Methylation",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_split = tnbc_annotation)
+
+
+agreement_data <- data.frame(
+  Agreement = agreement_categories
+)
+
+
+#
+# ANALYSING CASSETTES OF INTEREST. Cassette 233
+#
+
+# Defining cpgs of interest
+cpgs_of_interest <- names(promoter_10$colors)[promoter_10$colors == 1]
+cpgs_of_interest <- cpgs_of_interest[cpgs_of_interest %in% rownames(beta.adjusted)]
+
+# Cluster based on methylation
+cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% cpgs_of_interest],
+                 annoObj$illuminaID[annoObj$illuminaID %in% cpgs_of_interest])
+
+cluster_promoter <- kmeans(t(beta.adjusted[names(cpgs)[cpgs=="promoter"],]), centers = 2)
+
+
+# Determine hypo and hypermethylated cluster
+promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_promoter$cluster==1]) >
+                      mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_promoter$cluster==2])) {
+  
+  as.factor(ifelse(cluster_promoter$cluster == 1, "Hypermethylated", "Hypomethylated"))
+  
+} else {
+  
+  as.factor(ifelse(cluster_promoter$cluster == 2, "Hypermethylated", "Hypomethylated"))
+  
+}
+
+
+# Reorder
+promoter_state <- promoter_state[annotations$PD_ID]
+
+# ANNOTATION
+
+
+# Generating annotation for heatmap
+tnbc_annotation <- annotations[,"TNBCtype4"]
+im_annotation <- annotations[,"TNBCtype_IM"]
+im_annotation <- sapply(im_annotation, function(x) {
+  
+  if (is.na(x)) {NA}
+  else if (x == 1) {"Positive"}
+  else if (x == 0) {"Negative"}
+})
+
+epi_annotation <- annotations[,"NMF_ATAC_finalSubClusters"]
+pam50_annotation <- annotations[,"NCN_PAM50"]
+
+
+
+column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
+                                       TNBC = tnbc_annotation,
+                                       Epitype = epi_annotation,
+                                       IM = im_annotation,
+                                       col = list(
+                                         "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                         "IM"=c("Negative"="grey", "Positive"="black"),
+                                         "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="black"),
+                                         "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                     "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+)
+
+
+# Plotting heatmap
+Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
+        column_split = promoter_state,
+        show_column_names = FALSE,
+        show_row_dend =  FALSE,
+        top_annotation = column_annotation,
+        use_raster = FALSE)
+
+
+
+# Kaplan meier plot of based on methylation state
+DRFI <- annotations[, "OS"]
+DRFI_bin <- annotations[, "OSbin"]
+
+# Create the survival object
+surv_obj <- Surv(time = DRFI, event = DRFI_bin)
+
+# Fit Kaplan-Meier survival curves stratified by promoter_state
+fit <- survfit(surv_obj ~ promoter_state)
+
+# Plot Kaplan-Meier curves
+ggsurvplot(
+  fit,
+  data = data.frame(DRFI = DRFI, DRFI_bin = DRFI_bin, promoter_state = promoter_state),
+  pval = TRUE,                 
+  conf.int = TRUE,
+  risk.table = TRUE,      
+  legend.title = "Promoter State",
+  xlab = "Time (DRFI)",
+  ylab = "Survival Probability",
+  palette = "Dark2"             
+)
 

@@ -209,7 +209,7 @@ my_files_140_filbefore <- my_files[grepl("^filtered_before_resampling_n_140_beta
 list_of_cassettes <- list()
 list_of_samples <- list()
 
-for (file in my_files_100) {
+for (file in my_files_140_filbefore) {
 
   # Appending cassettes
   list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
@@ -307,7 +307,7 @@ lines(density(rowSums(df_included_cpgs)), col = "red", lwd = 2)
 list_of_cassettes <- list()
 
 # Getting cassetttes for n_resapmlings of interest
-for (file in my_files_100) {
+for (file in my_files_100_filbefore) {
   
   # Appending cassettes
   list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
@@ -335,7 +335,7 @@ original_assigments_df <- data.frame("CpG" = names(distal_10$colors),
                            "Cassettes" = distal_10$colors)
 
 # Define cassette to analyse
-cassette_to_analyse <- 3
+cassette_to_analyse <- 1
 
 # Initialize empty list
 cassette_prop_df <- list()  

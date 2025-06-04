@@ -7,7 +7,7 @@ library(dplyr)
 #
 
 # CosMs data
-oas2_per_cell_12 <-  read.csv("PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
+oas2_per_cell_12 <-  read.csv("/Users/isasiain/PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
 
 # Pdid to cores mapping
 core_to_pdid <- read.table("/Volumes/Data/CosMx/mapping.txt", sep = "\t", header = T)
@@ -89,6 +89,8 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 
 ### BLOCK 1 and 2
 
+par(mfrow=c(1,1))
+
 # Plotting panCK intensity vs cell type. Group 1 corresponds to tumour
 boxplot(oas2_per_cell_12$Mean.PanCK ~ oas2_per_cell_12$Cell_Type)
 
@@ -142,7 +144,7 @@ summary_per_tissue_12$PAM50 <- x[summary_per_tissue_12$PDid, "PAM50_Basal_NCN"]
 
 ### PLOTTING
 
-## BLOCK 1 and 2 (after batch correction)
+## BLOCK 1 and 2
 
 # Mean OAS2 expression
 
@@ -180,7 +182,7 @@ stripchart(summary_per_tissue_12$mean_OAS2 ~ summary_per_tissue_12$Methylation,
            add = TRUE)
 
 # Perform Wilcoxon test
-wilcox_res <- wilcox.test(summary_per_tissue_12$prop_OAS2 ~ summary_per_tissue_12$Methylation)
+wilcox_res <- wilcox.test(summary_per_tissue_12$mean_OAS2 ~ summary_per_tissue_12$Methylation)
 
 # Add p-value to plot
 pval <- wilcox_res$p.value
@@ -236,8 +238,6 @@ text(x = 1.1,
 
 
 ### CONTROL. Plotting AR vs Basal/NonBasal
-
-
 
 # Mean AR expression
 

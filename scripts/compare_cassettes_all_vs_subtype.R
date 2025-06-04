@@ -10,11 +10,11 @@ library(dplyr)
 # LOADING DATA
 #
 
-all_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")
-basal_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_5.rds")
-nonBasal_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_5.rds")
+all_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
+basal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_10.rds")
+nonBasal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_10.rds")
 
-atac_distal_5 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5_only_atac.rds")
+atac_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10_only_atac.rds")
 
 #
 # COMPARING CASSETTE ASSIGNMENTS
@@ -31,11 +31,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(all_distal_5$colors)[all_distal_5$colors == plot]
+  cpgs_cas <- names(all_distal_10$colors)[all_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- nonBasal_distal_5$colors[cpgs_cas]
+  colors <- nonBasal_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies
@@ -114,11 +114,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(all_distal_5$colors)[all_distal_5$colors == plot]
+  cpgs_cas <- names(all_distal_10$colors)[all_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- basal_distal_5$colors[cpgs_cas]
+  colors <- basal_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies
@@ -197,11 +197,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(nonBasal_distal_5$colors)[nonBasal_distal_5$colors == plot]
+  cpgs_cas <- names(nonBasal_distal_10$colors)[nonBasal_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- all_distal_5$colors[cpgs_cas]
+  colors <- all_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies
@@ -280,11 +280,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(basal_distal_5$colors)[basal_distal_5$colors == plot]
+  cpgs_cas <- names(basal_distal_10$colors)[basal_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- all_distal_5$colors[cpgs_cas]
+  colors <- all_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies
@@ -364,11 +364,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(atac_distal_5$colors)[atac_distal_5$colors == plot]
+  cpgs_cas <- names(atac_distal_10$colors)[atac_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- all_distal_5$colors[cpgs_cas]
+  colors <- all_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies
@@ -447,11 +447,11 @@ plot_list <- list()
 for (plot in cassettes) {
   
   # Getting CpGs
-  cpgs_cas <- names(all_distal_5$colors)[all_distal_5$colors == plot]
+  cpgs_cas <- names(all_distal_10$colors)[all_distal_10$colors == plot]
   
   
   # Prepare the data
-  colors <- atac_distal_5$colors[cpgs_cas]
+  colors <- atac_distal_10$colors[cpgs_cas]
   colors[is.na(colors)] <- "NA"
   
   # Count frequencies

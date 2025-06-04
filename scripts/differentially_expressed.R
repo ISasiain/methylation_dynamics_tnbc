@@ -3,6 +3,7 @@
 library(ComplexHeatmap)
 library(circlize)
 library(ggplot2)
+library(ggrepel)
 library(tidyr)
 
 #
@@ -58,25 +59,25 @@ rownames(x) <- x$PD_ID
 
 
 # PROMOTER
-promoter_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_15.rds")
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
-summary_prom15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_15.csv")
-rownames(summary_prom15) <- as.character(summary_prom15$Cassette)
-summary_prom15$Cassette <- NULL
+summary_prom10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
+rownames(summary_prom10) <- as.character(summary_prom10$Cassette)
+summary_prom10$Cassette <- NULL
 
 # DISTAL
-distal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_15.rds")
+distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 
-summary_dis15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_15.csv")
-rownames(summary_dis15) <- as.character(summary_dis15$Cassette)
-summary_dis15$Cassette <- NULL
+summary_dis10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
+rownames(summary_dis10) <- as.character(summary_dis10$Cassette)
+summary_dis10$Cassette <- NULL
 
 # PROXIMAL
-proximal_15 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_15.rds")
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
 
-summary_prox15 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_15.csv")
-rownames(summary_prox15) <- as.character(summary_prox15$Cassette)
-summary_prox15$Cassette <- NULL
+summary_prox10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_10.csv")
+rownames(summary_prox10) <- as.character(summary_prox10$Cassette)
+summary_prox10$Cassette <- NULL
 
 # FPKM counts
 fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
@@ -101,31 +102,32 @@ my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosy
 #
 
 # Get CpGs of the proximal, distal and promoter cassettes linked to PAM50 Basal/NonBasal
+# Using cassettes whose Rand Index is higher than 0.65
 my_cpgs_prom <-  c(
-  names(promoter_15$colors)[promoter_15$colors == "1"]
+  names(promoter_10$colors)[promoter_10$colors == "1"]
 )
 
 my_cpgs_dis <-  c(
-  names(distal_15$colors)[distal_15$colors == "2"],
-  names(distal_15$colors)[distal_15$colors == "4"]
+  names(distal_10$colors)[distal_10$colors == "2"],
+  names(distal_10$colors)[distal_10$colors == "3"]
 )
 
 my_cpgs_prox <- c(
-  names(proximal_15$colors)[proximal_15$colors == "1"],
-  names(proximal_15$colors)[proximal_15$colors == "2"]
+  names(proximal_10$colors)[proximal_10$colors == "1"],
+  names(proximal_10$colors)[proximal_10$colors == "3"]
 )
 
 my_cpgs_all <- c(
-  names(promoter_15$colors)[promoter_15$colors == "1"],
-  names(distal_15$colors)[distal_15$colors == "2"],
-  names(distal_15$colors)[distal_15$colors == "4"],
-  names(proximal_15$colors)[proximal_15$colors == "1"],
-  names(proximal_15$colors)[proximal_15$colors == "2"]
+  names(promoter_10$colors)[promoter_10$colors == "1"],
+  names(distal_10$colors)[distal_10$colors == "2"],
+  names(distal_10$colors)[distal_10$colors == "3"],
+  names(proximal_10$colors)[proximal_10$colors == "1"],
+  names(proximal_10$colors)[proximal_10$colors == "3"]
 )
 
 # Geenerate data frame to store groups
-groupings_df <- data.frame(matrix(nrow = length(colnames(summary_prox15)), ncol = 5))
-rownames(groupings_df) <- colnames(summary_prox15)
+groupings_df <- data.frame(matrix(nrow = length(colnames(summary_prox10)), ncol = 5))
+rownames(groupings_df) <- colnames(summary_prox10)
 colnames(groupings_df) <- c("group_prom", "group_dis", "group_prox", "group_all", "PAM50")        
 
 # CLUSTERING IN TWO GROUPS
@@ -247,7 +249,7 @@ fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prom == 1
 fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prom == 2]]
 
 # Identifying genes in cassette 1
-cpgs_in_cassette <- names(promoter_15$colors[promoter_15$colors == 1])
+cpgs_in_cassette <- c(names(promoter_10$colors[promoter_10$colors == 1]))
 genes_in_cassette <- unique(genes[cpgs_in_cassette])
 
 # Count the number of CpGs linked to each gene
@@ -300,23 +302,30 @@ results$color <- ifelse(results$Bonferroni_p > 0.05, "grey", "blue")
 
 # Volcano plot
 ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, color = color)) +
-  geom_point(alpha = 0.7) +  # Points with transparency
-  geom_text(data = subset(results, Bonferroni_p <= 0.05),  # Show labels only for significant genes
-            aes(label = Gene), vjust = -1, size = 4) +
-  scale_color_manual(values = c("blue", "grey")) +  # Define colors
-  scale_size(range = c(3, 8)) +                     # Adjust point size range
+  geom_point(alpha = 0.7) + 
+  geom_text_repel(
+    data = subset(results, Bonferroni_p <= 0.0000000001),
+    aes(label = Gene),
+    size = 4,
+    max.overlaps = Inf,
+    min.segment.length = 0,
+    segment.color = "grey50",
+    box.padding = 0.4,
+    point.padding = 0.3
+  ) +
+  scale_color_manual(values = c("#1f78b4", "grey")) +  
+  scale_size(range = c(2, 6)) +                    
   theme_classic() +
   labs(
-    title = "Volcano Plot",
-    x = "Log2 Fold Change",
+    x = "Log2 Fold Change in Expression",
     y = "-log10(Bonferroni p-value)",
-    size = "CpG Count",
-    color = "Significance"
+    size = "CpG Count"
   ) +
   theme(
     text = element_text(size = 14),
     plot.title = element_text(hjust = 0.5)
-  )
+  ) +
+  theme_bw()
 
 
 # PROXIMAL
@@ -326,7 +335,7 @@ fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 1
 fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 2]]
 
 # Identifying genes in cassette 1
-cpgs_in_cassette <- names(proximal_15$colors[(proximal_15$colors == 1) | (proximal_15$colors == 2)])
+cpgs_in_cassette <- names(proximal_10$colors[proximal_10$colors == 1])
 genes_in_cassette <- unique(genes[cpgs_in_cassette])
 
 # Count the number of CpGs linked to each gene
@@ -379,23 +388,32 @@ results$color <- ifelse(results$Bonferroni_p > 0.05, "grey", "blue")
 
 # Volcano plot
 ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, color = color)) +
-  geom_point(alpha = 0.7) +  # Points with transparency
-  geom_text(data = subset(results, Bonferroni_p <= 0.05),  # Show labels only for significant genes
-            aes(label = Gene), vjust = -1, size = 4) +
-  scale_color_manual(values = c("blue", "grey")) +  # Define colors
-  scale_size(range = c(3, 8)) +                     # Adjust point size range
-  theme_minimal() +
+  geom_point(alpha = 0.7) + 
+  geom_text_repel(
+    data = subset(results, Bonferroni_p <= 0.0000000001),
+    aes(label = Gene),
+    size = 4,
+    max.overlaps = Inf,
+    min.segment.length = 0,
+    segment.color = "grey50",
+    box.padding = 0.4,
+    point.padding = 0.3
+  ) +
+  scale_color_manual(values = c("#1f78b4", "grey")) +  
+  scale_size(range = c(2, 6)) +                    
+  theme_classic() +
   labs(
-    title = "Volcano Plot",
-    x = "Log2 Fold Change",
+    x = "Log2 Fold Change in Expression",
     y = "-log10(Bonferroni p-value)",
-    size = "CpG Count",
-    color = "Significance"
+    size = "CpG Count"
   ) +
   theme(
     text = element_text(size = 14),
     plot.title = element_text(hjust = 0.5)
-  )
+  ) +
+  theme_bw()
+
+
 
 
 # DISTAL
@@ -405,7 +423,7 @@ fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_dis == 1]
 fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_dis == 2]]
 
 # Identifying genes in cassette 1
-cpgs_in_cassette <- names(distal_15$colors[(distal_15$colors == 1) | (distal_15$colors == 2)])
+cpgs_in_cassette <- names(distal_10$colors[(distal_10$colors == 1) | (distal_10$colors == 2)])
 genes_in_cassette <- unique(genes[cpgs_in_cassette])
 
 # Count the number of CpGs linked to each gene

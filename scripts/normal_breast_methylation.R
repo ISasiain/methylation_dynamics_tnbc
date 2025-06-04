@@ -109,6 +109,3 @@ boxplot(t(data_subset),
         border = "darkblue", 
         notch = FALSE, 
         frame = FALSE)
-
-
-
