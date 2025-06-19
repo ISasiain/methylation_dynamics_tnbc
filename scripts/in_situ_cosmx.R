@@ -1,12 +1,16 @@
 #! usr/bin/Rscript
 
 library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
 
 #
 # LOADING DATA
 #
 
-# CosMs data
+# CosMs data<
 oas2_per_cell_12 <-  read.csv("/Users/isasiain/PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
 
 # Pdid to cores mapping
@@ -33,6 +37,24 @@ load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Update
 rownames(x) <- x$PD_ID
 
 #
+# ASSIGN LABELS TO GMM CELL CLUSTERS
+#
+
+# Classify cells based on panck intensity
+if (mean(oas2_per_cell_12[oas2_per_cell_12$GMM_Label == 1, "Mean.PanCK"]) > mean(oas2_per_cell_12[oas2_per_cell_12$GMM_Label == 0, "Mean.PanCK"])) {
+  
+  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 1] <- "Tumor"
+  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 0] <- "Stroma"
+  
+} else {
+  
+  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 0] <- "Tumor"
+  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 1] <- "Stroma"
+      
+}
+
+
+#
 # PLOT MEAN EXPRESSION OF ALL GENES (OAS2 + CONTROLS)
 #
 
@@ -41,7 +63,7 @@ my_genes <- c("OAS2_Count", "BRCA1_Count", "SMO_Count", "GSTP1_Count" , "AR_Coun
 
 # Reshape to long format
 df_long <- oas2_per_cell_12 %>%
-  filter(Cell_Type == "Tumour") %>%
+  filter(GMM_Label == "Tumor") %>%
   pivot_longer(cols = all_of(my_genes), names_to = "Gene", values_to = "Expression")
 
 # Calculate mean expression per gene
@@ -92,10 +114,10 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 par(mfrow=c(1,1))
 
 # Plotting panCK intensity vs cell type. Group 1 corresponds to tumour
-boxplot(oas2_per_cell_12$Mean.PanCK ~ oas2_per_cell_12$Cell_Type)
+boxplot(oas2_per_cell_12$Mean.PanCK ~ oas2_per_cell_12$GMM_Label)
 
 # Remove non-tumour cells from df
-oas2_per_cell_12 <- oas2_per_cell_12[oas2_per_cell_12$Cell_Type == "Tumour", ]
+oas2_per_cell_12 <- oas2_per_cell_12[oas2_per_cell_12$GMM_Label == "Tumor", ]
 
 
 # Adding pdid
@@ -118,8 +140,8 @@ oas2_per_cell_12$"Methylation" <- sapply(
 summary_per_tissue_12 <- oas2_per_cell_12 %>%
   group_by(Tissue_ID) %>%
   summarise(
-    PDid = first(PDid),
-    Methylation = first(Methylation),
+    PDid = dplyr::first(PDid),
+    Methylation = dplyr::first(Methylation),
     
     mean_OAS2 = mean(OAS2_Count, na.rm = TRUE),
     prop_OAS2 = mean(OAS2_Count > 0, na.rm = TRUE),
@@ -159,82 +181,43 @@ labels_with_counts <- paste0(
   "\ns=", counts_samples[names(counts_cores)]
 )
 
-
-# Draw boxplot with custom x-axis labels
-boxplot(summary_per_tissue_12$mean_OAS2 ~ summary_per_tissue_12$Methylation,
-        ylab = "Mean Expression in Tumour cells",
-        xlab = "Promoter Methylation",,
-        ylim = c(0, 1.5),
-        frame = FALSE)
+# Prepare the labels as a dataframe
+label_df <- data.frame(
+  Methylation = c("Hypermethylated", "Hypomethylated"),
+  label = labels_with_counts)
 
 
-# Add the annotation below the x-axis
-text(x = 1:2, y = 1.35, labels = labels_with_counts, xpd = TRUE, cex = 0.8)
-
-
-# Add jittered points
-stripchart(summary_per_tissue_12$mean_OAS2 ~ summary_per_tissue_12$Methylation,
-           method = "jitter", 
-           pch = 16,
-           cex = 0.6,
-           col = rgb(0, 0, 0, 0.5),
-           vertical = TRUE,
-           add = TRUE)
-
-# Perform Wilcoxon test
-wilcox_res <- wilcox.test(summary_per_tissue_12$mean_OAS2 ~ summary_per_tissue_12$Methylation)
-
-# Add p-value to plot
-pval <- wilcox_res$p.value
-text(x = 1.1, 
-     y = 1, 
-     labels = paste0("Mann-Whitney p = ", signif(pval, 3)),
-     pos = 3, cex = 0.9)
-
+ex_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=mean_OAS2)) +
+  geom_violin(fill="black", width=1.1) +
+  geom_boxplot(fill="grey90", col="grey40", width=0.13) +
+  theme_bw(base_size = 14) +
+  xlab(NULL) +
+  ylim(0,1.52) +
+  ylab("Mean OAS2 expression in tumor cells") + 
+  stat_compare_means(method = "wilcox.test", label = "p.format", 
+                     comparisons = list(c("Hypomethylated", "Hypermethylated")), 
+                     label.x = c("Hypomethylated", "Hypermethylated"),
+                     label.y = 1.4, size = 5) +
+  geom_text(data = label_df, aes(x = Methylation, y = 1.2, label = label), 
+            inherit.aes = FALSE, size = 5, vjust = 0)
 
 # Proportion of cells with detected expressin of OAS2
 
-# Count number of data points per class
-counts_cores <- table(summary_per_tissue_12$Methylation)
-counts_samples <- c("Hypermethylated" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$Methylation == "Hypermethylated","PDid"]))),
-                    "Hypomethylated" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$Methylation == "Hypomethylated","PDid"]))))
+prop_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=prop_OAS2)) +
+  geom_violin(fill="black", width=1.1) +
+  geom_boxplot(fill="grey90", col="grey40", width=0.13) +
+  theme_bw(base_size = 14) +
+  xlab(NULL) +
+  ylim(0,0.38) +
+  ylab("% of tumor cells expressing OAS2") + 
+  stat_compare_means(method = "wilcox.test", label = "p.format", 
+                     comparisons = list(c("Hypomethylated", "Hypermethylated")), 
+                     label.x = c("Hypomethylated", "Hypermethylated"),
+                     label.y = 0.35, size = 5) +
+  geom_text(data = label_df, aes(x = Methylation, y = 0.3, label = label), 
+            inherit.aes = TRUE, size = 5, vjust = 0)
 
-
-labels_with_counts <- paste0(
-  "n=", counts_cores[names(counts_cores)], 
-  "\ns=", counts_samples[names(counts_cores)]
-)
-
-# Draw boxplot with custom x-axis labels
-boxplot(summary_per_tissue_12$prop_OAS2 ~ summary_per_tissue_12$Methylation,
-        ylab = "Proportion of Tumour cells expressing",
-        ylim=c(0, 0.4),
-        xlab = "Promoter Methylation",
-        frame = FALSE)
-
-# Add the annotation below the x-axis
-text(x = 1:2, y = 0.35, labels = labels_with_counts, xpd = TRUE, cex = 0.8)
-
-
-# Add jittered points
-stripchart(summary_per_tissue_12$prop_OAS2 ~ summary_per_tissue_12$Methylation,
-           method = "jitter", 
-           pch = 16,
-           cex = 0.6,
-           col = rgb(0, 0, 0, 0.5),
-           vertical = TRUE,
-           add = TRUE)
-
-# Perform Wilcoxon test
-wilcox_res <- wilcox.test(summary_per_tissue_12$prop_OAS2 ~ summary_per_tissue_12$Methylation)
-
-# Add p-value to plot
-pval <- wilcox_res$p.value
-text(x = 1.1, 
-     y = 0.25, 
-     labels = paste0("Mann-Whitney p = ", signif(pval, 3)),
-     pos = 3, cex = 0.9)
-
+ex_plot | prop_plot
 
 
 ### CONTROL. Plotting AR vs Basal/NonBasal

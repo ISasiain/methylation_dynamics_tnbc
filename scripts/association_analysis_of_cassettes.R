@@ -54,6 +54,99 @@ promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cass
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
 distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 
+#
+# PLOTTING BRCA1 CASSETTE
+#
+
+data <- promoter_10$colors
+cpgs <- names(data)[data == 11]
+genes[cpgs]
+
+pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
+tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
+HRD_annotation <- my_annotations[colnames(betaAdj), "HRD"]
+epi_annotation <- my_annotations[colnames(betaAdj), "NMF_atacDistal"]
+im_annotation <- my_annotations[colnames(betaAdj), "IM"]
+tils_annotation <- as.numeric(x[colnames(betaAdj), "TILs"])
+
+my_fpkm_data <- as.numeric(fpkm_data["BRCA1", colnames(betaAdj)])
+
+# Create top anotation
+top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+                                    TNBC = tnbc_annotation,
+                                    HRD = HRD_annotation,
+                                    IM = im_annotation,
+                                    Epitype = epi_annotation,
+                                    TILs = anno_points(tils_annotation,
+                                                       ylim=c(0,100),
+                                                       size=unit(0.75, "mm"),
+                                                       axis_param = list(
+                                                         side="left",
+                                                         at=c(0,25,50,75,100),
+                                                         labels=c("0","25","50","75","100")
+                                                       )),
+                                    col = list(
+                                      "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+                                      "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                      "IM"=c("Negative"="grey", "Positive"="black"),
+                                      "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+                                      "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+                                                  "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue")
+                                    )
+)
+
+
+# Updated left_annotation with color scale
+right_annotation <- rowAnnotation(
+  "Normal beta" = rowMeans(betaNorm[cpgs,]),
+  "ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% cpgs],
+  col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")),
+             "ATAC" = c("0" = "white", "1"= "black"))
+)
+
+# CpG context annotation
+left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% cpgs]
+)
+
+# Expression annotation
+bottom_annotation <- HeatmapAnnotation(
+  "FPKM" = anno_barplot(my_fpkm_data)
+)
+
+# Cluster based on methylation
+cluster_promoter <- kmeans(t(betaAdj[cpgs,]), centers = 2)
+
+# Determine hypo and hypermethylated cluster
+promoter_state <- if (mean(betaAdj[cpgs,cluster_promoter$cluster==1]) >
+                      mean(betaAdj[cpgs,cluster_promoter$cluster==2])) {
+  
+  as.factor(ifelse(cluster_promoter$cluster == 1, "Hypermethylated", "Hypomethylated"))
+  
+} else {
+  
+  as.factor(ifelse(cluster_promoter$cluster == 2, "Hypermethylated", "Hypomethylated"))
+  
+}
+
+
+# Heatmap of genes
+Heatmap(
+  betaAdj[cpgs,],
+  cluster_rows = FALSE,
+  row_order = order(annoObj$start[annoObj$illuminaID %in% cpgs]),
+  cluster_columns = TRUE,
+  show_row_names = FALSE,
+  show_column_names = FALSE,
+  show_row_dend = FALSE,
+  column_split = promoter_state,
+  top_annotation = top_annotation,
+  right_annotation = right_annotation,
+  bottom_annotation = bottom_annotation,
+  clustering_distance_columns = "euclidean",
+  clustering_method_columns = "ward.D2",
+  name = "Tumor beta"
+)
+
 
 #
 # ASSOCIATION OF CASSETTES WITH TILS
@@ -168,24 +261,50 @@ results$logP_bonferroni <- -log10(results$P_adj_Bonf)
 #Change rownames
 rownames(results) <- results$Cassette
 
-# Define significance threshold
+# Set significance threshold and number of top hits to label
 threshold <- 0.05
+top_n <- 30
 
-# Create the volcano plot
-ggplot(results, aes(x = Kendall_Tau, y = logP_FDR, label = Cassette)) +
+# Create a subset with only the top significant results to label
+top_labels <- results %>%
+  filter(P_adj_FDR < threshold) %>%
+  arrange(desc(logP_FDR)) %>%
+  slice_head(n = top_n)
+
+# Set threshold and number of top hits to label
+threshold <- 0.05
+top_n <- 30
+
+# Subset the top significant hits to label
+top_labels <- results %>%
+  filter(P_adj_FDR < threshold) %>%
+  arrange(desc(logP_FDR)) %>%
+  slice_head(n = top_n)
+
+# Volcano plot
+ggplot(results, aes(x = Kendall_Tau, y = logP_FDR)) +
   geom_point(aes(color = P_adj_FDR < threshold), size = 3, alpha = 0.8) + 
   scale_color_manual(values = c("grey", "red")) +
-  geom_text(vjust = 1.5, size = 4, check_overlap = TRUE) +  # Add labels
+  geom_text_repel(
+    data = top_labels,
+    aes(label = Cassette),
+    size = 4,
+    max.overlaps = Inf,
+    min.segment.length = 0,
+    segment.color = "grey50",
+    box.padding = 0.4,
+    point.padding = 0.3
+  ) +
+  geom_hline(yintercept = -log10(threshold), linetype = "dashed", color = "blue") +
   theme_bw() +
   labs(
     x = "Kendall’s Tau",
-    y = "-log10(FDR. P-value)",
+    y = "-log10(FDR. P-value)"
   ) +
   theme(
     legend.position = "none",
     text = element_text(size = 14)
-  ) +
-  geom_hline(yintercept = -log10(threshold), linetype = "dashed", color = "blue")
+  )
 
 
 results_sorted <- results[order(-abs(results$Kendall_Tau)), ]
@@ -311,7 +430,6 @@ genes[cpgs]
 # IMPACT IN OUTCOME
 #
 
-
 # Getting data
 IDFS <- x[colnames(prom_cassettes),"DRFI"]
 IDFS_bin <- x[colnames(prom_cassettes), "DRFIbin"]
@@ -322,11 +440,6 @@ chemo <- unname(sapply(x[colnames(prom_cassettes),"Chemotherapy"], function(x) {
   else if (x == "None") {return("No_chemo")}
   else {return("Chemo")}
 }))
-
-# Use scaled values
-prom_cassettes <- scale(prom_cassettes)
-dis_cassettes <- scale(dis_cassettes)
-prox_cassettes <- scale(prox_cassettes)
 
 
 # PROMOTER
@@ -362,15 +475,13 @@ results$pvalue_adj <- p.adjust(results$pvalue, method = "fdr")
 ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
   geom_point(aes(color = pvalue_adj < 0.05), size = 3) +
   geom_text_repel() +
-  scale_color_manual(values = c("black", "red")) +
+  scale_color_manual(values = c("grey", "red")) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "blue") +
   xlab("Log2 Hazard Ratio") + 
   ylab("-Log10 Adjusted P-value") +
-  theme_classic() +
+  theme_bw() +
   theme(axis.text = element_text(size = 12), 
-        axis.title = element_text(size = 14)) +
-  ggtitle("Volcano Plot: Association of All Cassettes PC1 to Outcome")
-
+        axis.title = element_text(size = 14))
 
 
 #
@@ -378,7 +489,7 @@ ggplot(results, aes(x = log2(HR), y = -log10(pvalue_adj), label = Cassette)) +
 #
 
 data <- promoter_10$colors
-cpgs <- names(data)[data == 32]
+cpgs <- names(data)[data == 10]
 genes[cpgs]
 
 pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
@@ -388,7 +499,7 @@ epi_annotation <- my_annotations[colnames(betaAdj), "NMF_atacDistal"]
 im_annotation <- my_annotations[colnames(betaAdj), "IM"]
 tils_annotation <- as.numeric(x[colnames(betaAdj), "TILs"])
 
-my_fpkm_data <- as.numeric(fpkm_data["NRN1", colnames(betaAdj)])
+my_fpkm_data <- as.numeric(fpkm_data["EPO", colnames(betaAdj)])
 
 # Create top anotation
 top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
@@ -460,7 +571,6 @@ Heatmap(
   column_split = promoter_state,
   top_annotation = top_annotation,
   right_annotation = right_annotation,
-  left_annotation = left_annotation,
   bottom_annotation = bottom_annotation,
   clustering_distance_columns = "euclidean",
   clustering_method_columns = "ward.D2",
@@ -500,15 +610,15 @@ ggsurvplot(
   data = data.frame(IDFS = IDFS, IDFS_bin = IDFS_bin, promoter_state = promoter_state),
   pval = TRUE,                 
   conf.int = FALSE,              
-  risk.table = TRUE,            
+  risk.table = TRUE,
+  legend.labs = NULL,
   legend.title = "Promoter State",
-  xlab = "Time (IDFS)",
-  ylab = "Survival Probability",
-  palette = "Dark2"             # Optional: change color palette
+  xlab = "Time",
+  ylab = "IDFS Probability",
+  palette = "Dark2"             
 )
 
 # Plotting metastasis type vs cassette 233
-
 metastasis_type <- as.character(x[colnames(prom_cassettes), "Metastasis_type"])
 metastasis_type[is.na(metastasis_type)] <- "NA"  # Convert NA to a string
 boxplot(as.numeric(prom_cassettes["233",]) ~ as.factor(metastasis_type),

@@ -544,24 +544,39 @@ right_annotation <- rowAnnotation(
 left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]
 )
  
+library(ggplot2)
 
+# Add FDR and Bonferroni corrections
+volcano_data$FDR <- p.adjust(volcano_data$pval, method = "fdr")
+volcano_data$Bonferroni_p <- p.adjust(volcano_data$pval, method = "bonferroni")
 
-# Heatmap of genes
-Heatmap(
-  betaAdj[names(genes)[genes == current_gene_id],],
-  cluster_rows = FALSE,
-  row_order = order(annoObj$start[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]),
-  cluster_columns = TRUE,
-  show_row_names = FALSE,
-  show_column_names = FALSE,
-  show_row_dend = FALSE, 
-  top_annotation = top_annotation,
-  bottom_annotation = bottom_annotation,
-  right_annotation = right_annotation,
-  left_annotation = left_annotation,
-  clustering_distance_columns = "euclidean",
-  clustering_method_columns = "ward.D2",
-  name = "Tumor beta"
-)
+# Add significance color and fake CpG_Count for plotting
+volcano_data$color <- ifelse(volcano_data$Bonferroni_p <= 0.05, "blue", "grey")
+volcano_data$CpG_Count <- 1  # Replace with real value if you have it
+volcano_data$Gene <- volcano_data$gene
+volcano_data$neg_log10_p <- -log10(volcano_data$Bonferroni_p)
+
+# Plot
+ggplot(volcano_data, aes(x = log2FC, y = neg_log10_p, size = CpG_Count, color = color)) +
+  geom_point(alpha = 0.7) +
+  geom_text(
+    data = subset(volcano_data, Bonferroni_p <= 0.05),
+    aes(label = Gene), vjust = -1, size = 4
+  ) +
+  scale_color_manual(values = c("blue", "grey")) +
+  scale_size(range = c(3, 8)) +
+  theme_minimal() +
+  labs(
+    title = "Volcano Plot (Wilcoxon Test)",
+    x = "Log2 Fold Change (Median)",
+    y = "-log10(Bonferroni p-value)",
+    size = "CpG Count",  # Rename if using something else
+    color = "Significance"
+  ) +
+  theme(
+    text = element_text(size = 14),
+    plot.title = element_text(hjust = 0.5)
+  )
+
 
 

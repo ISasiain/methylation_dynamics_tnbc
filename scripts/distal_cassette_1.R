@@ -7,7 +7,7 @@ library(patchwork)
 
 # Load data
 dist_summary_10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
-rownames(dist_summary_10) <- dist_summary_15$Cassette
+rownames(dist_summary_10) <- dist_summary_10$Cassette
 dist_summary_10$Cassette <- NULL
 
 dist_cassette_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
@@ -40,8 +40,31 @@ Heatmap(betaAdj[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],],
         bottom_annotation = pc1_annotation,
         name="Tumor beta")
 
+
+# Change due to purity adjustment
+
+# BETA VALUE
+plot(c(betaAdj[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],]),
+     c(betaNew[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],]),
+     pch=16,
+     cex=0.1,
+     xlab="Adjusted beta",
+     ylab="Original beta")
+
+
+# VARIANCE
+var_adj <- apply(betaAdj[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],], MARGIN = 1, FUN = var)
+var_orig <- apply(betaNew[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],], MARGIN = 1, FUN = var)
+
+plot(var_adj,
+     var_orig,
+     pch=16,
+     cex=0.5,
+     xlab="Adjusted beta",
+     ylab="Original beta")
+
 #
-# PLOTTING HEATMP OF CASSETTE 1 + PC1
+# PLOTTING PC1 + BIOLOGICAL FEATURES
 # 
 
 # Prepare the data
@@ -80,7 +103,7 @@ p2 <- ggplot(plot_df, aes(x = HRD.2.status, y = PC1_Cassette1)) +
         axis.ticks.y = element_blank())
 
 # Plot 3: PC1 vs Lehmann
-p3 <- ggplot(filter(plot_df, !is.na(TNBCtype4_n235_notPreCentered)), 
+p3 <- ggplot(plot_df <- plot_df[!is.na(plot_df$TNBCtype4_n235_notPreCentered), ], 
              aes(x = TNBCtype4_n235_notPreCentered, y = PC1_Cassette1)) +
   geom_boxplot(color = "black", fill = "lightgrey", outlier.shape = 16, outlier.color = "red", notch = FALSE) +
   theme_bw() + 
@@ -91,7 +114,8 @@ p3 <- ggplot(filter(plot_df, !is.na(TNBCtype4_n235_notPreCentered)),
         axis.ticks.y = element_blank())
 
 # Plot 4: PC1 vs IM
-p4 <- ggplot(filter(plot_df, !is.na(IM)), aes(x = IM, y = PC1_Cassette1)) +
+p4 <- ggplot(plot_df <- plot_df[!is.na(plot_df$IM), ], 
+             aes(x = IM, y = PC1_Cassette1)) +
   geom_boxplot(color = "black", fill = "lightgrey", outlier.shape = 16, outlier.color = "red", notch = FALSE) +
   theme_bw() + 
   labs(x = "IM Status", y = NULL) +
@@ -104,7 +128,8 @@ p4 <- ggplot(filter(plot_df, !is.na(IM)), aes(x = IM, y = PC1_Cassette1)) +
 
 corr_val <- cor(as.numeric(dist_summary_10["1", colnames(betaAdj)]), x$ASCAT_TUM_FRAC, method="spearman")
 
-p5 <- ggplot(filter(plot_df, !is.na(plot_df$ASCAT_TUM_FRAC)), aes(x = ASCAT_TUM_FRAC, y = PC1_Cassette1)) +
+p5 <- ggplot(plot_df <- plot_df[!is.na(plot_df$ASCAT_TUM_FRAC), ], 
+             aes(x = ASCAT_TUM_FRAC, y = PC1_Cassette1)) +
   geom_point(
     color = "black",
     cex = 0.8
@@ -118,14 +143,14 @@ p5 <- ggplot(filter(plot_df, !is.na(plot_df$ASCAT_TUM_FRAC)), aes(x = ASCAT_TUM_
   annotate("text", 
            x = 0.35 * max(plot_df$ASCAT_TUM_FRAC, na.rm = TRUE), 
            y = min(plot_df$PC1_Cassette1, na.rm = TRUE), 
-           label = paste0("Cor. = ", round(corr_val, 2)), 
+           label = paste0("Cor. = ", round(corr_val, 3)), 
            hjust = 0, vjust = 0, size = 5)
 
 
 # PC1 VS TILs
 corr_val <- cor(as.numeric(dist_summary_10["1", colnames(betaAdj)]), x$TILs, method="spearman", use = "complete.obs")
 
-p6 <- ggplot(filter(plot_df, !is.na(plot_df$TILs)), aes(x = TILs, y = PC1_Cassette1)) +
+p6 <- ggplot(plot_df <- plot_df[!is.na(plot_df$TILs), ], aes(x = TILs, y = PC1_Cassette1)) +
   geom_point(
     color = "black",
     cex = 0.8
@@ -139,7 +164,7 @@ p6 <- ggplot(filter(plot_df, !is.na(plot_df$TILs)), aes(x = TILs, y = PC1_Casset
   annotate("text", 
             x = 0.3 * max(plot_df$TILs, na.rm = TRUE), 
            y = min(plot_df$PC1_Cassette1, na.rm = TRUE), 
-           label = paste0("Cor. = ", round(corr_val, 2)), 
+           label = paste0("Cor. = ", round(corr_val, 3)), 
            hjust = 0, vjust = 0, size = 5)
 
 

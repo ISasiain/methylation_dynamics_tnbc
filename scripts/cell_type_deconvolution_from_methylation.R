@@ -184,7 +184,7 @@ summarized$Adjustment <- factor(summarized$Adjustment, levels = c("Before\nPureB
 plot_boxplot_group <- function(df, group_name) {
   ggplot(df %>% filter(Group == group_name), aes(x = Adjustment, y = Proportion)) +
     geom_violin(aes(group = Adjustment), fill = "black") +
-    geom_boxplot(aes(group = Adjustment), outlier.shape = NA, fill = "gray90", width=0.25) +
+    geom_boxplot(aes(group = Adjustment), outlier.shape = NA, fill = "gray90",  col="gray60", width=0.25) +
     labs(y = "Proportion", x = NULL) +
     theme_bw(base_size = 13) +
     theme(legend.position = "none")

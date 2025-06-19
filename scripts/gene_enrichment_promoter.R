@@ -109,7 +109,7 @@ saveRDS(list_of_kegg, "../../analysis/kegg_enrichment_proximal_10.rds")
 # KEGG
 
 # Cassette 1
-kegg_df <- list_of_kegg[[3]] 
+kegg_df <- list_of_kegg[[2]] 
 kegg_df <- kegg_df[kegg_df$FDR <= 0.05,]
 
 kegg_df <- kegg_df[order(kegg_df$FDR, decreasing = TRUE),]
@@ -158,4 +158,29 @@ hallmarks_cas_1 <- ggplot(hallmarks_df, aes(x = -log10(FDR), y = Description)) +
 kegg_cas_1 / hallmarks_cas_1 +
   plot_layout(heights = c(10, 3), guides = "collect") &
   theme(legend.position = "bottom")
+
+
+# GO
+
+# Cassette 1
+GO_df <- list_of_go[[10]]
+GO_df <- GO_df[GO_df$FDR <= 0.05,]
+
+# Capitalize first letter
+GO_df$TERM <- sub("^([a-z])", "\\U\\1", GO_df$TERM, perl = TRUE)
+
+# Sorting
+GO_df <- GO_df[order(GO_df$FDR, decreasing = TRUE),]
+GO_df$TERM <- factor(GO_df$TERM, levels = GO_df$TERM)
+
+
+ggplot(GO_df, aes(x = -log10(FDR), y = TERM)) +
+  geom_point(aes(size = DE/N), color = "black") +
+  scale_size_continuous(limits = c(0, 0.4), breaks = c(0, 0.1, 0.2, 0.3, 0.4)) +
+  theme_bw() +
+  labs(
+    x = "-log10(FDR p value)",
+    y = "GO terms",
+    size = "Gene Ratio"
+  )
 

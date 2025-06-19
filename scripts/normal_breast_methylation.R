@@ -1,11 +1,15 @@
 #! usr/bin/Rscript
 
 library(ComplexHeatmap)
+library(circlize)
+library(tidyverse)
 
 #
 # LOADING DATA
 #
 
+# Loading promoter cassettes
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
 # Epitype annotations
 my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
@@ -64,48 +68,35 @@ load("/Volumes/Data/Project_3/normal_breast_methylation/GSE67919/GSE67919_Annota
 
 normal_tissue_methylation_96 <- beta
 
-
 #
 # PLOTTING
 #
 
 
-gbp4_cpgs <- names(genes)[genes == "GBP4"]
-gbp4_cpgs <- gbp4_cpgs[gbp4_cpgs %in% rownames(normal_tissue_methylation_96)]
-data_subset <- normal_tissue_methylation_96[gbp4_cpgs,]
+# Prepare long-format data
+selected_genes <- c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L")
 
+plot_data <- lapply(selected_genes, function(gene) {
+  cpgs <- names(genes)[genes == gene]
+  cpgs <- cpgs[cpgs %in% rownames(normal_tissue_methylation_96)]
+  data <- normal_tissue_methylation_96[cpgs, , drop = FALSE]
+  df <- as.data.frame(t(data))
+  df$Sample <- rownames(df)
+  df_long <- pivot_longer(df, -Sample, names_to = "CpG", values_to = "Beta")
+  df_long$Gene <- gene
+  df_long
+}) %>% bind_rows()
 
-Heatmap(data_subset,
-        show_row_names = TRUE,       # Display row names
-        show_column_names = FALSE,   # Hide column names
-        col = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))  # Define color gradient
-)
+# Removing cpgs that were not in the detected cassette.
+plot_data <- plot_data[plot_data$CpG %in% names(promoter_10$colors)[promoter_10$colors == 10],]
 
-# Adjust margins 
-par(mar = c(6, 4, 2, 2)) 
-
-# Create the boxplot
-
-# Compute median values for each category
-medians <- apply(data_subset, 1, median, na.rm = TRUE)
-
-# Define a color gradient: blue (0), white (0.5), red (1)
-color_palette <- colorRampPalette(c("blue", "white", "red"))(100)
-
-# Map medians to the color palette
-median_scaled <- medians * 100 # Rescale to range 1-100
-box_colors <- color_palette[round(median_scaled)] # Assign colors based on median
-
-# Plot with category-specific colors
-boxplot(t(data_subset), 
-        las = 2, 
-        xlab = "", 
-        ylab = "Beta Value", 
-        col = box_colors,  # Assign colors based on median
-        ylim = c(0,1), 
-        cex.axis = 0.8, 
-        cex.lab = 1.2,  
-        cex.main = 1.4, 
-        border = "darkblue", 
-        notch = FALSE, 
-        frame = FALSE)
+# Plot
+ggplot(plot_data, aes(x = CpG, y = Beta)) +
+  geom_violin(fill="black") +
+  geom_boxplot(fill = "grey90", col= "grey50", outlier.size = 0.5, width=0.2) +
+  facet_grid(.~ Gene,scales = "free", space='free') +
+  theme_bw(base_size = 12) +
+  ylim(0,1) +
+  ylab("Beta Value") +
+  xlab("CpG Site") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))

@@ -51,12 +51,14 @@ annoObj$CpG_context <- feature_class_grouped <- dplyr::case_when(
 load("PhD/Projects/project_3/data/summarized_TPS_data_sampleLevel.RData")
 rownames(u.frame) <- u.frame$PD_ID
 
+# Loading promoter cassettes
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+
 #
 # PLOTTING CPGS AFFECTING 
 #
 
-current_gene_id = "DENND1A"
-
+current_gene_id = "BRCA1"
   
   pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
   tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
@@ -102,13 +104,14 @@ current_gene_id = "DENND1A"
                "ATAC" = c("0" = "white", "1"= "black"))
   )
   
-  # CpG context annotation
-  left_annotation <- rowAnnotation("Context"= annoObj$CpG_context[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
+  # CpG annotation. Context and included in cassette
+  left_annotation <- rowAnnotation("CpG_in_cassette" = names(genes)[genes == current_gene_id] %in% names(promoter_10$colors)[promoter_10$colors == 11],
+                                   "Context"= annoObj$CpG_context[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
                                    col=list("Context"=c("Distal" = "#f8766d", 
                                                         "Promoter" = "#00ba38", 
-                                                        "Proximal" = "#619cff")))
-  
-  # Atac annotation
+                                                        "Proximal" = "#619cff"),
+                                            "CpG_in_cassette"=c("TRUE" = "black", 
+                                                                "FALSE" = "white")))
   
   # Cluster based on methylation
   cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
@@ -127,6 +130,7 @@ current_gene_id = "DENND1A"
     as.factor(ifelse(cluster_gbp4_promoter$cluster == 2, "Hypermethylated", "Hypomethylated"))
     
   }
+  
   
   # Heatmap of genes
   Heatmap(
@@ -155,7 +159,11 @@ current_gene_id = "DENND1A"
   
   # Convert data to a dataframe for ggplot2
   plot_data <- data.frame(
-    FPKM = as.numeric(fpkm_data[current_gene_id, colnames(betaAdj),]),
+    GBP4_FPKM = as.numeric(fpkm_data["GBP4", colnames(betaAdj),]),
+    ZBP1_FPKM = as.numeric(fpkm_data["ZBP1", colnames(betaAdj),]),
+    OAS2_FPKM = as.numeric(fpkm_data["OAS2", colnames(betaAdj),]),
+    CARD16_FPKM = as.numeric(fpkm_data["CARD16", colnames(betaAdj),]),
+    SAMD9L_FPKM = as.numeric(fpkm_data["SAMD9L", colnames(betaAdj),]),
     TILs = as.numeric(x[colnames(betaAdj), "TILs"]),
     PDL1_CPS = as.numeric(x[colnames(betaAdj), "PDL1_CPS"]),
     PDL1_TPS = sapply(u.frame[colnames(betaAdj), "PDL1_TPS"], function(x) {
@@ -165,42 +173,163 @@ current_gene_id = "DENND1A"
       else {0}
     }
     ),
-    Methylation_State = gbp4_promoter_state,
+    GBP4_Methylation_State = with(annoObj, {
+      cpgs <- setNames(featureClass[illuminaID %in% names(genes)[genes == "GBP4"]],
+                       illuminaID[illuminaID %in% names(genes)[genes == "GBP4"]])
+      km <- kmeans(t(betaAdj[names(cpgs)[cpgs == "promoter"], ]), centers = 2)
+      if (mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 1]) >
+          mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 2])) {
+        as.factor(ifelse(km$cluster == 1, "Hyper.", "Hypo."))
+      } else {
+        as.factor(ifelse(km$cluster == 2, "Hyper.", "Hypo."))
+      }
+    }),
+    OAS2_Methylation_State = with(annoObj, {
+      cpgs <- setNames(featureClass[illuminaID %in% names(genes)[genes == "OAS2"]],
+                       illuminaID[illuminaID %in% names(genes)[genes == "OAS2"]])
+      km <- kmeans(t(betaAdj[names(cpgs)[cpgs == "promoter"], ]), centers = 2)
+      if (mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 1]) >
+          mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 2])) {
+        as.factor(ifelse(km$cluster == 1, "Hyper.", "Hypo."))
+      } else {
+        as.factor(ifelse(km$cluster == 2, "Hyper.", "Hypo."))
+      }
+    }),
+    ZBP1_Methylation_State = with(annoObj, {
+      cpgs <- setNames(featureClass[illuminaID %in% names(genes)[genes == "ZBP1"]],
+                       illuminaID[illuminaID %in% names(genes)[genes == "ZBP1"]])
+      km <- kmeans(t(betaAdj[names(cpgs)[cpgs == "promoter"], ]), centers = 2)
+      if (mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 1]) >
+          mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 2])) {
+        as.factor(ifelse(km$cluster == 1, "Hyper.", "Hypo."))
+      } else {
+        as.factor(ifelse(km$cluster == 2, "Hyper.", "Hypo."))
+      }
+    }),
+    CARD16_Methylation_State = with(annoObj, {
+      cpgs <- setNames(featureClass[illuminaID %in% names(genes)[genes == "CARD16"]],
+                       illuminaID[illuminaID %in% names(genes)[genes == "CARD16"]])
+      km <- kmeans(t(betaAdj[names(cpgs)[cpgs == "promoter"], ]), centers = 2)
+      if (mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 1]) >
+          mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 2])) {
+        as.factor(ifelse(km$cluster == 1, "Hyper.", "Hypo."))
+      } else {
+        as.factor(ifelse(km$cluster == 2, "Hyper.", "Hypo"))
+      }
+    }),
+    
+    SAMD9L_Methylation_State = with(annoObj, {
+      cpgs <- setNames(featureClass[illuminaID %in% names(genes)[genes == "SAMD9L"]],
+                       illuminaID[illuminaID %in% names(genes)[genes == "SAMD9L"]])
+      km <- kmeans(t(betaAdj[names(cpgs)[cpgs == "promoter"], ]), centers = 2)
+      if (mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 1]) >
+          mean(betaAdj[names(cpgs)[cpgs == "promoter"], km$cluster == 2])) {
+        as.factor(ifelse(km$cluster == 1, "Hyper.", "Hypo."))
+      } else {
+        as.factor(ifelse(km$cluster == 2, "Hyper.", "Hypo."))
+      }
+    }),
     HRD = as.factor(x[colnames(betaAdj), "HRD.2.status"])
   )
   
   
   # EXPRESSION BOXPLOT
   
-  # Perform Wilcoxon or Kruskal-Wallis test
-  stat_test <- compare_means(FPKM ~ Methylation_State, data = plot_data, method = "wilcox.test")
+  # Function to make plots
+  make_expression_boxplot <- function(gene, y_label, x_label, ymax) {
+    ggplot(plot_data, aes_string(x = paste0(gene, "_Methylation_State"), y = paste0(gene, "_FPKM"))) +
+      geom_violin(fill="black") +
+      geom_boxplot(outlier.shape = NA, width=0.15, fill="grey90", col="grey40",) +
+      theme_bw(base_size = 14) +
+      labs(x = x_label, y = y_label) +
+      theme(legend.position = "none", axis.text.x = element_text(angle = 0)) +
+      stat_compare_means(
+        method = "wilcox.test",
+        label = "p.format",
+        comparisons = list(c("Hypo.", "Hyper.")),
+        label.x = c("Hypo.", "Hyper."),
+        label.y = ymax
+      )
+  }
   
-  # Create the boxplot with p-value annotation
-  ggplot(plot_data, aes(x = Methylation_State, y = FPKM, fill = Methylation_State)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.7) +  # Removes outliers
-    geom_jitter(width = 0.2, size = 1, alpha = 0.5) +  # Jittered points for visibility
-    scale_fill_manual(values = c("indianred1", "cadetblue1")) +  # Custom fill colors
-    theme_classic(base_size = 14) +  # Classic theme
-    labs(x = "Promoter Methylation State", y = "CARD16 FPKM") +
-    theme(legend.position = "none") +  # Hide legend
-    stat_compare_means(method = "wilcox.test", label = "p.format", 
-                       comparisons = list(c("Hypomethylated", "Hypermethylated")), 
-                       label.x = c("Hypomethylated", "Hypermethylated"))  # Add p-value label and specify the comparisons
+  GBP4_plot <- make_expression_boxplot("GBP4", "FPKM", NULL, 54)
+  OAS2_plot <- make_expression_boxplot("OAS2", "FPKM", NULL, 98)
+  ZBP1_plot <- make_expression_boxplot("ZBP1", "FPKM", NULL, 19)
+  CARD16_plot <- make_expression_boxplot("CARD16", "FPKM", NULL, 37)
+  SAMD9L_plot <- make_expression_boxplot("SAMD9L", "FPKM", NULL, 41)
+  
+  # Combine plots vertically
+  (GBP4_plot | OAS2_plot | ZBP1_plot | CARD16_plot | SAMD9L_plot) + plot_layout(guides = "collect")
+  
   
   # TILs BOXPLOT
   
-  ggplot(plot_data, aes(x = Methylation_State, y = TILs, fill = Methylation_State)) +
-    geom_boxplot(outlier.shape = NA, alpha = 0.7) +  # Removes outliers for better jitter visibility
-    geom_jitter(width = 0.2, size = 1, alpha = 0.5) +  # Adds jittered points
-    scale_fill_manual(values = c("indianred1", "cadetblue1")) +  # Custom colors
-    theme_classic(base_size = 14) +  # Classic theme
-    labs(x = "Promoter Methylation State", y = "TILs (%)") +
-    theme(legend.position = "none") +
-    stat_compare_means(method = "wilcox.test", label = "p.format", 
-                       comparisons = list(c("Hypomethylated", "Hypermethylated")), 
-                       label.x = c("Hypomethylated", "Hypermethylated"))  # Add p-value label and specify the comparisons
+  make_tils_boxplot <- function(gene, y_label, x_label, ymax) {
+    
+    ggplot(plot_data, aes_string(x = paste0(gene, "_Methylation_State"), y = "TILs", fill = paste0(gene, "_Methylation_State"))) +
+      geom_violin(fill="black") +
+      geom_boxplot(outlier.shape = NA, width=0.15, fill="grey90", col="grey40",) +
+      theme_bw(base_size = 14) +  # Classic theme
+      labs(x = x_label, y = y_label) +
+      theme(legend.position = "none", axis.text.x = element_text(angle = 0)) +
+      stat_compare_means(method = "wilcox.test", label = "p.format", 
+                       comparisons = list(c("Hypo.", "Hyper.")), 
+                       label.x = c("Hypo.", "Hyper."),
+                       label.y = ymax)
+  }
+  
+  GBP4_plot <- make_tils_boxplot("GBP4", "TILs (%)", NULL, 80)
+  OAS2_plot <- make_tils_boxplot("OAS2", NULL, NULL, 80)
+  ZBP1_plot <- make_tils_boxplot("ZBP1", NULL, NULL, 80)
+  CARD16_plot <- make_tils_boxplot("CARD16", NULL, NULL, 80)
+  SAMD9L_plot <- make_tils_boxplot("SAMD9L", NULL, NULL, 80)
+  
+  # Combine plots horizontally
+  GBP4_plot | OAS2_plot | ZBP1_plot | CARD16_plot | SAMD9L_plot
   
   
+  # PDL1 CPS BARPLOT
+  
+  make_pdl1CPS_barplot <- function(gene, y_label, x_label, legend_pos, show_y_axis = TRUE) {
+    gene_meth_col <- paste0(gene, "_Methylation_State")
+    
+    base_plot <- ggplot(subset(plot_data, !is.na(PDL1_CPS)), 
+                        aes_string(x = gene_meth_col, fill = "as.factor(PDL1_CPS)")) +
+      geom_bar(position = "fill", alpha = 0.8) +  # Proportional stacked bar
+      theme_bw(base_size = 14) +
+      labs(x = x_label, 
+           y = y_label, 
+           fill = "PD-L1 CPS") +
+      scale_fill_manual(values = c("0" = "#619CFF", 
+                                   "1" = "#9B59B6", 
+                                   "2" = "#F8766D"),
+                        labels = c("0" = "< 1%", 
+                                   "1" = "1% & < 10%", 
+                                   "2" = "≥ 10%")) +
+      theme(legend.position = legend_pos, 
+            legend.text = element_text(size = 12))
+    
+    if (!show_y_axis) {
+      base_plot <- base_plot + 
+        theme(axis.title.y = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
+    }
+    
+    return(base_plot)
+  }
+  
+  GBP4_plot <- make_pdl1CPS_barplot("GBP4", "Proportion of samples", NULL, "none", show_y_axis = TRUE)
+  OAS2_plot <- make_pdl1CPS_barplot("OAS2", NULL, NULL, "none", show_y_axis = FALSE)
+  ZBP1_plot <- make_pdl1CPS_barplot("ZBP1", NULL, NULL, "none",  show_y_axis = FALSE)
+  CARD16_plot <- make_pdl1CPS_barplot("CARD16", NULL, NULL, "none", show_y_axis = TRUE)
+  SAMD9L_plot <- make_pdl1CPS_barplot("SAMD9L", NULL, NULL, "right", show_y_axis = FALSE)
+  
+  # Combine plots horizontally
+  GBP4_plot | OAS2_plot | ZBP1_plot 
+  CARD16_plot | SAMD9L_plot
+  
+
   # PDL1 CPS BARPLOT
   
   ggplot(subset(plot_data, !is.na(PDL1_CPS)), aes(x = as.factor(Methylation_State), fill = as.factor(PDL1_CPS))) +
@@ -302,7 +431,7 @@ current_gene_id = "DENND1A"
 # PLOTTING TILEPLOT OF PROMOTER HYPERMETHYLATION OF SELECTED GENES
 #
 
-gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16")
+gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16", "SAMD9L")
 
 clusters_methylation <- data.frame(matrix(ncol = ncol(betaAdj), nrow = length(gene_ids)))
 colnames(clusters_methylation) <- colnames(betaAdj)

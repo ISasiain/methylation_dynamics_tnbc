@@ -23,16 +23,29 @@ only_tc <- UpdateSeuratObject(only_tc)
 # GENES OF INTEREST IN CANCER CELLS
 
 # Plotting expression of genes of interest in tumour cells
-DotPlot(only_tum, features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L", "IL18R1", "BATF2", "CD69"), group.by = "group", assay = "RNA") + RotatedAxis()
+gene_expression <- DotPlot(only_tum, 
+        features = c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L"), 
+        group.by = "group", 
+        assay = "RNA", ) + 
+  RotatedAxis() + 
+  xlab("Genes") +
+  theme_bw(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_color_gradient2(
+    limits = c(-1, 3),
+    low = "gold1",
+    mid = "lightgrey",
+    high = "purple",
+    midpoint = 0
+  )
 
 
 # STROMAL AND IMMUNE CELLS PER SAMPLE
-
 cell_types <- c("0"="T cells", "1"="Macrophagues", "2"="Plasma cells", "3"="Fibroblasts", "4"="T cells","5"="B cells", "6"="Dendritic cells", "7"="Endothelial cells", "8"="Pericytes", "9"="Myeloid cells")
 
 # Get log count data
 cell_type_counts <- table(only_str$group, unname(cell_types[only_str$seurat_clusters]))
-#cell_type_counts_log <- log(cell_type_counts + 1)
+cell_type_counts_log <- log(cell_type_counts + 1)
 
 # Z Scale per cell type 
 scaled_per_cell_type <- t(scale(cell_type_counts_log))
@@ -46,13 +59,21 @@ cell_type_counts_long$original_counts <- mapply(function(x, y) cell_type_counts[
                                                 cell_type_counts_long$Var1)
 
 # Plotting with original counts for tile annotation
-ggplot(cell_type_counts_long, aes(x = Var1, y = Var2, fill = value)) +
+composition_of_microenvironment <- ggplot(cell_type_counts_long, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +  # Midpoint set to 0
-  labs(x = "Group", y = "Cell Type", fill = "Scaled cell counts") +
-  theme_minimal() +
+  labs(x = "Cell type", y = "Samople", fill = "Scaled log cell counts") +
+  theme_bw(base_size = 14) +
+  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
   geom_text(aes(label = original_counts),  color = "black", size = 3)  +  # Use raw counts for annotation
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis
+
+
+# Combine the plots
+(gene_expression | composition_of_microenvironment) + 
+  plot_layout(widths = c(1, 1.75), guides = "collect") &
+  theme(legend.position = "right")
+
 
 # T CELL SUBTYPES
 

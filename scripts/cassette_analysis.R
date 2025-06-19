@@ -9,7 +9,8 @@ library(tidyr)
 # USER DEFINED FUNCTIONS
 #
 
-# Function to summarize cassettes using the first principal component
+# Function to summarize cassettes using the first principal component and ensuring to
+# keep directionality
 summarize_cassettes <- function(files, output_dir) {
   for (file in files) {
     # Getting CpG cassette
@@ -21,14 +22,22 @@ summarize_cassettes <- function(files, output_dir) {
     # Iterate through cassettes
     for (cassette in unique(cpgs_to_cassette)) {
       # Select betas for the current cassette
-      betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]),]
+      betas <- betaAdj[names(cpgs_to_cassette[cpgs_to_cassette == cassette]), ]
       
-      # Perform PCA and extract the first principal component
+      # Perform PCA on transposed data (samples as rows)
       pca <- prcomp(t(betas), center = TRUE, scale. = TRUE)
-      first_pc <- pca$x[, 1]
+      pc1 <- pca$x[, 1]
+      
+      # Calculate mean methylation per sample
+      mean_methylation <- colMeans(betas, na.rm = TRUE)
+      
+      # Flip PC1 if direction is opposite to methylation
+      if (cor(pc1, mean_methylation, use = "complete.obs") < 0) {
+        pc1 <- -pc1
+      }
       
       # Create a summary dataframe
-      summary_df <- data.frame(Cassette = cassette, t(first_pc))
+      summary_df <- data.frame(Cassette = cassette, t(pc1))
       
       # Append to the summary list
       summary_list[[as.character(cassette)]] <- summary_df
@@ -48,7 +57,7 @@ summarize_cassettes <- function(files, output_dir) {
 }
 
 #
-# LOADING DSATA
+# LOADING DATA
 #
 
 # Loading betas
@@ -89,111 +98,6 @@ load("/Volumes/Data/Project_3/validation_cohort/Combined_annotations_rel4SCANB_d
 rownames(annotations) <- annotations$Sample
 
 
-#
-# PLOTTING CHANGE IN CPG CONTEXT WHEN FILTERING BASED ON VARIANCE
-#
-
-# Create a new grouped feature class
-feature_class_grouped <- dplyr::case_when(
-  annoObj$featureClass %in% c("distal", "distal body") ~ "Distal",
-  annoObj$featureClass %in% c("promoter") ~ "Promoter",
-  annoObj$featureClass %in% c("proximal dn", "proximal up") ~ "Proximal",
-  TRUE ~ as.character(annoObj$featureClass) 
-)
-
-annoObj$featureGroup <- feature_class_grouped
-
-# Define variance splits
-variance_splits <- c(1000, 2500, 5000, 10000, 20000, 50000)
-
-# Calculate variances
-var_before_beta_adj <- apply(betaNew, 1, var)
-var_after_beta_adj <- apply(betaAdj, 1, var)
-
-# Create dataframes to store the data
-df_of_context_per_variance_pre <- as.data.frame(matrix(nrow = length(variance_splits),
-                                                   ncol = length(unique(annoObj$featureGroup))))
-
-rownames(df_of_context_per_variance_pre) <- variance_splits
-colnames(df_of_context_per_variance_pre) <- unique(annoObj$featureGroup)
-
-df_of_context_per_variance_post <- as.data.frame(matrix(nrow = length(variance_splits),
-                                                       ncol = length(unique(annoObj$featureGroup))))
-
-rownames(df_of_context_per_variance_post) <- variance_splits
-colnames(df_of_context_per_variance_post) <- unique(annoObj$featureGroup)
-
-
-# Iterate through variance splits and calculate proportions
-for (n_cpgs in variance_splits) {
-  
-  # Get cpgs to be kept
-  cpgs_kept_post <- names(var_after_beta_adj[order(var_after_beta_adj, decreasing = TRUE)][1:as.numeric(n_cpgs)])
-  cpgs_kept_pre <- names(var_after_beta_adj[order(var_before_beta_adj, decreasing = TRUE)][1:as.numeric(n_cpgs)])
-  
-  # Determine proportion of cpg context
-  df_of_context_per_variance_post[as.character(n_cpgs),] <- table(annoObj$featureGroup[annoObj$illuminaID %in% cpgs_kept_post])[colnames(df_of_context_per_variance_post)]/n_cpgs
-  df_of_context_per_variance_pre[as.character(n_cpgs),] <- table(annoObj$featureGroup[annoObj$illuminaID %in% cpgs_kept_pre])[colnames(df_of_context_per_variance_pre)]/n_cpgs
-  }
-
-
-# BEFORE PURITY ADJUSTMENT
-
-# Adding column
-df_of_context_per_variance_pre$cpg_num <- rownames(df_of_context_per_variance_pre)
-
-# Reshape to long format
-df_long <- df_of_context_per_variance_pre %>%
-  pivot_longer(
-    cols = -cpg_num,
-    names_to = "FeatureClass",
-    values_to = "Proportion"
-  )
-
-# Plot
-plot_before <- ggplot(df_long, aes(
-  x = factor(cpg_num, levels = rev(c(1000, 2500, 5000, 10000, 20000, 50000))),
-  y = Proportion,
-  fill = FeatureClass
-)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(
-    x = "Top N Variable CpGs",
-    y = "Proportion",
-    fill = "Feature Class"
-  ) +
-  coord_flip() +
-  theme_minimal()
-
-# AFTER PURITY ADJUSTMENT
-
-# Adding column
-df_of_context_per_variance_post$cpg_num <- rownames(df_of_context_per_variance_post)
-
-# Reshape to long format
-df_long <- df_of_context_per_variance_post %>%
-  pivot_longer(
-    cols = -cpg_num,
-    names_to = "FeatureClass",
-    values_to = "Proportion"
-  )
-
-# Plot
-plot_after <- ggplot(df_long, aes(
-  x = factor(cpg_num, levels = rev(c(1000, 2500, 5000, 10000, 20000, 50000))),
-  y = Proportion,
-  fill = FeatureClass
-)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(
-    x = "Top N Variable CpGs",
-    y = "Proportion",
-    fill = "CpG context"
-  ) +
-  coord_flip() +
-  theme_bw()
-
-
 
 #
 # ALL CASSETTES
@@ -201,7 +105,7 @@ plot_after <- ggplot(df_long, aes(
 
 # List all files
 all_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/all/", full.names = TRUE)
-all_files <- all_files[!grepl("unadjusted", all_files)]
+all_files <- all_files[grepl("unadjusted", all_files)]
 
 
 # PLOT 1. NUMBER OF CASSETTES AND SIZE PER BETA
@@ -238,7 +142,7 @@ ggplot(summary_df, aes(x = beta)) +
   labs(x = "Beta",
        y = "Number of Cassettes") +
   scale_y_continuous( sec.axis = sec_axis(~ . / 25, name = "Mean Cassette Length")) +  # Adjust scaling factor as needed
-  theme_classic()
+  theme_bw()
 
 
 # PLOT 2. PROPORTION OF CASSETTES PER BETA
@@ -284,7 +188,7 @@ ggplot(cassette_df, aes(x = beta, y = proportion, fill = cassette)) +
   labs(x = "Beta",
        y = "Proportion",
        fill = "Cassette") +
-  theme_classic()
+  theme_bw()
 
 # 3. Plotting First 7 Cassettes
 
@@ -336,11 +240,12 @@ for (file in all_files) {
                      row_split = cassette_factor, 
                      row_title = row_labels,  
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
-                     top_annotation = column_annotation,
-                     use_raster = FALSE)
+                     top_annotation = column_annotation)
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/all_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted_from_adjusted.pdf"), width = 14, height = 10) 
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/all_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted_from_adjusted.png"), width = 4000, height = 2800, res = 600)
+  draw(heatmap)
+  dev.off()
 }
 
 
@@ -543,8 +448,8 @@ for (file in distal_files) {
                      #right_annotation = atac_annotation,
                      use_raster = FALSE)
   
-  # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  # Save the heatmap to a file 
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, ".png"), , width = 4000, height = 2800, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -682,7 +587,7 @@ ggplot(summary_df, aes(x = beta)) +
 # List all promoter files
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
 promoter_files <- promoter_files[!grepl("only", promoter_files)]
-promoter_files <- promoter_files[grepl("not_purity_adjusted", promoter_files)]
+promoter_files <- promoter_files[!grepl("not_purity_adjusted", promoter_files)]
 
 
 # Loop through each file
@@ -775,9 +680,9 @@ for (file in promoter_files) {
                      top_annotation = column_annotation_short,
                      #left_annotation = row_annotation,
                      use_raster = FALSE)
+
   
-  # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, ".png"), , width = 4000, height = 2800, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -912,7 +817,7 @@ ggplot(summary_df, aes(x = beta)) +
 # List all proximal files
 proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
 proximal_files <- proximal_files[!grepl("only", proximal_files)]
-proximal_files <- proximal_files[grepl("not_purity_adjusted", proximal_files)]
+proximal_files <- proximal_files[!grepl("not_purity_adjusted", proximal_files)]
 
 # Loop through each file
 for (file in proximal_files) {
@@ -1005,8 +910,8 @@ for (file in proximal_files) {
                      #left_annotation = row_annotation,
                      use_raster = FALSE)
   
-  # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/heatmap_beta_", beta, ".pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  # Save the heatmap to a file
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/heatmap_beta_", beta, ".png") , width = 4000, height = 2800, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -1100,70 +1005,23 @@ for (file in proximal_files) {
 
 # Distal cassettes
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
+distal_files <- distal_files[!grepl("only", distal_files)]
+distal_files <- distal_files[!grepl("not", distal_files)]
+
 summarize_cassettes(distal_files, "/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes")
 
 # Promoter cassettes
 promoter_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/promoter/", full.names = TRUE)
+promoter_files <- promoter_files[!grepl("only", promoter_files)]
+promoter_files <- promoter_files[!grepl("not", promoter_files)]
+
 summarize_cassettes(promoter_files, "/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes")
 
 # Proximal cassettes
 proximal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/proximal/", full.names = TRUE)
+proximal_files <- proximal_files[!grepl("only", proximal_files)]
+proximal_files <- proximal_files[!grepl("not", proximal_files)]
+
 summarize_cassettes(proximal_files, "/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes")
 
-
-#
-# TF ENRICHMENT IN DISTAL CASSETTES
-#
-
-
-# List all files
-distal_file_10 <- "/Volumes/Data/Project_3/detected_cassettes/distal//cassettes_beta_10.rds"
-
-# Load distal cassette data
-distal_10 <- readRDS(file)
-  
-# Define cassettes of interest
-selected_cassettes <- 0:10
-  
-# Extract CpGs per cassette
-cpg_list <- lapply(selected_cassettes, function(cassette) {
-    names(distal$colors[distal$colors == cassette])
-})
-names(cpg_list) <- selected_cassettes
-  
-# Flatten CpGs list
-selected_CpGs <- as.character(unlist(cpg_list))
-  
-# Subset TF annotation matrix for selected CpGs
-tf_annotation <- tfMat[selected_CpGs, , drop = FALSE]
-  
-# Create an empty matrix to store fraction per cassette per TF
-tf_fraction_matrix <- matrix(NA, 
-                                nrow = length(selected_cassettes), 
-                               ncol = ncol(tf_annotation),
-                               dimnames = list(paste0("Cassette_", selected_cassettes),
-                                               colnames(tf_annotation)))
-  
-# Calculate fraction of CpGs with TF binding per cassette
-for (cassette in selected_cassettes) {
-  cpgs_in_cassette <- cpg_list[[as.character(cassette)]]
-    
-  if (length(cpgs_in_cassette) == 0) {
-      # If no CpGs in cassette, fill NA or 0
-      tf_fraction_matrix[paste0("Cassette_", cassette), ] <- NA
-      next
-    }
-    
-  # Subset TF matrix for CpGs in cassette
-  tf_sub <- tfMat[cpgs_in_cassette, , drop = FALSE]
-    
-  # Fraction of CpGs bound by each TF (assuming binary 0/1 or logical matrix)
-  tf_fraction <- colSums(tf_sub) / nrow(tf_sub)
-    
-  tf_fraction_matrix[paste0("Cassette_", cassette), ] <- tf_fraction
-}
-  
-  
-
-sort(tf_fraction_matrix["Cassette_10",])
 

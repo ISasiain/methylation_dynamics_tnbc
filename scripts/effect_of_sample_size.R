@@ -8,6 +8,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(patchwork)
+library(RColorBrewer)
 
 
 #
@@ -25,7 +26,8 @@ orig_epi <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_a
 
 # Loading Distal cassettes. Beta = 10
 distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
-
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
 #
 # CASSETTE DETECTION WITH RESAMPLINGS. All Distal
@@ -36,7 +38,7 @@ distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassette
 # cor <- WGCNA::cor
 # 
 # # Define number for resampling
-# samples_n <- c(60, 100, 120, 140)
+# samples_n <- c(100)
 # 
 # for (sample_n in samples_n) {
 #   
@@ -110,27 +112,103 @@ distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassette
 
 # Variance filtering before resampling
 
+cor <- WGCNA::cor
+ 
+ # Define number for resampling
+ samples_n <- c(60, 100, 140)
+ 
+ # Run variance based filtering before running WGCNA
+ variance_dis <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[row,])})
+ 
+ for (sample_n in samples_n) {
+ 
+   # Define runs
+   runs <- 1:20
+ 
+   for (run in runs) {
+     
+     # Filtering CpGs with low variance
+     sampled_betas <-  betaAdj[variance_dis > 0.1,]
+     
+     # Defining proportions for sampling
+     proportions_of_epitypes <- prop.table(table(orig_epi$NMF_atacDistal))
+ 
+     # Sample indices with probabilities based on the corresponding epitype
+     sampled_indices <- sample(
+       seq_len(nrow(orig_epi)),
+       size = sample_n,
+       replace = FALSE,
+       prob = proportions_of_epitypes[as.character(orig_epi$NMF_atacDistal)]
+     )
+ 
+     # Getting beta values of sampled indices
+     sampled_betas <- sampled_betas[,sampled_indices]
+     
+     # Using only distal cpgs
+     distal_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "distal" | annoObj$featureClass == "distal body")]
+ 
+     sampled_betas <- t(sampled_betas[rownames(sampled_betas) %in% distal_cpgs, ])
+ 
+     # Defining betas to use
+     betas <- c(10)
+ 
+     # Running WGCNA
+     for (beta in betas) {
+ 
+       message("Running: sample_n = ", sample_n, ", run = ", run, ", beta = ", beta)
+ 
+       netwk <- blockwiseModules(sampled_betas,
+                                 corrType="bicor", # Using biweight midcorrelation
+                                 nThreads = 10,
+ 
+                                 # == Adjacency Function ==
+                                 power = beta,
+                                 networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+ 
+                                 # == Tree and Block Options ==
+                                 deepSplit = 2,
+                                 pamRespectsDendro = F,
+                                 minModuleSize = 3,
+                                 maxBlockSize = 6000,
+ 
+                                 # == Module Adjustments ==
+                                 reassignThreshold = 0,
+                                 mergeCutHeight = 0.25,
+
+                                 # == Output Options
+                                 numericLabels = T,
+                                 verbose = 0)
+ 
+       # Saving network
+       my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/", "filtered_before_resampling_n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
+       saveRDS(netwk, file = my_filename)
+ 
+     }
+   }
+ }
+
+
+#
+# CASSETTE DETECTION WITH RESAMPLINGS. All Promoter
+#
+
+# Variance filtering after resampling
+
 # cor <- WGCNA::cor
 # 
 # # Define number for resampling
-# samples_n <- c(60, 100, 140)
-# 
-# # Run variance based filtering before running WGCNA
-# variance_dis <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[row,])})
+# samples_n <- c(100)
 # 
 # for (sample_n in samples_n) {
-# 
+#   
 #   # Define runs
 #   runs <- 1:20
-# 
+#   
 #   for (run in runs) {
-#     
-#     # Filtering CpGs with low variance
-#     sampled_betas <-  betaAdj[variance_dis > 0.1,]
 #     
 #     # Defining proportions for sampling
 #     proportions_of_epitypes <- prop.table(table(orig_epi$NMF_atacDistal))
-# 
+#     
 #     # Sample indices with probabilities based on the corresponding epitype
 #     sampled_indices <- sample(
 #       seq_len(nrow(orig_epi)),
@@ -138,52 +216,294 @@ distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassette
 #       replace = FALSE,
 #       prob = proportions_of_epitypes[as.character(orig_epi$NMF_atacDistal)]
 #     )
-# 
+#     
 #     # Getting beta values of sampled indices
-#     sampled_betas <- sampled_betas[,sampled_indices]
+#     sampled_betas <- betaAdj[,sampled_indices]
 #     
 #     # Using only distal cpgs
-#     distal_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "distal" | annoObj$featureClass == "distal body")]
+#     promoter_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "promoter")]
+#     
+#     sampled_betas <- sampled_betas[rownames(sampled_betas) %in% promoter_cpgs, ]
+#     
+#     # Calculating variance of CpGs
+#     variance_dis <- sapply(1:nrow(sampled_betas), FUN = function(row) {var(sampled_betas[row,])})
 # 
-#     sampled_betas <- t(sampled_betas[rownames(sampled_betas) %in% distal_cpgs, ])
-# 
-#     # Defining betas to use
-#     betas <- c(10)
-# 
+#     # Filtering CpGs with low variance
+#     sampled_betas <-  t(sampled_betas[variance_dis > 0.1,])
+#     
+#     # Defining betas to use 
+#     betas <- c(5, 10, 15)
+#     
 #     # Running WGCNA
 #     for (beta in betas) {
-# 
+#       
 #       message("Running: sample_n = ", sample_n, ", run = ", run, ", beta = ", beta)
-# 
-#       netwk <- blockwiseModules(sampled_betas,
-#                                 corrType="bicor", # Using biweight midcorrelation
+#       
+#       netwk <- blockwiseModules(sampled_betas,               
+#                                 corrType="bicor", # Using biweight midcorrelation 
 #                                 nThreads = 10,
-# 
+#                                 
 #                                 # == Adjacency Function ==
-#                                 power = beta,
+#                                 power = beta,             
 #                                 networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
-# 
+#                                 
 #                                 # == Tree and Block Options ==
 #                                 deepSplit = 2,
 #                                 pamRespectsDendro = F,
 #                                 minModuleSize = 3,
 #                                 maxBlockSize = 6000,
-# 
+#                                 
 #                                 # == Module Adjustments ==
 #                                 reassignThreshold = 0,
 #                                 mergeCutHeight = 0.25,
-# 
+#                                 
 #                                 # == Output Options
 #                                 numericLabels = T,
 #                                 verbose = 0)
-# 
+#       
 #       # Saving network
-#       my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/", "filtered_before_resampling_n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
+#       my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_promoter/", "n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
 #       saveRDS(netwk, file = my_filename)
-# 
+#       
 #     }
 #   }
 # }
+
+# Variance filtering before resampling
+cor <- WGCNA::cor
+
+# Define number for resampling
+samples_n <- c(100)
+
+# Run variance based filtering before running WGCNA
+variance_dis <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[row,])})
+
+for (sample_n in samples_n) {
+
+  # Define runs
+  runs <- 1:20
+
+  for (run in runs) {
+
+    # Filtering CpGs with low variance
+    sampled_betas <-  betaAdj[variance_dis > 0.05,]
+
+    # Defining proportions for sampling
+    proportions_of_epitypes <- prop.table(table(orig_epi$NMF_atacDistal))
+
+    # Sample indices with probabilities based on the corresponding epitype
+    sampled_indices <- sample(
+      seq_len(nrow(orig_epi)),
+      size = sample_n,
+      replace = FALSE,
+      prob = proportions_of_epitypes[as.character(orig_epi$NMF_atacDistal)]
+    )
+
+    # Getting beta values of sampled indices
+    sampled_betas <- sampled_betas[,sampled_indices]
+
+    # Using only distal cpgs
+    promoter_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "promoter")]
+
+    sampled_betas <- t(sampled_betas[rownames(sampled_betas) %in% promoter_cpgs, ])
+
+    # Defining betas to use
+    betas <- c(10)
+
+    # Running WGCNA
+    for (beta in betas) {
+
+      message("Running: sample_n = ", sample_n, ", run = ", run, ", beta = ", beta)
+
+      netwk <- blockwiseModules(sampled_betas,
+                                corrType="bicor", # Using biweight midcorrelation
+                                nThreads = 10,
+
+                                # == Adjacency Function ==
+                                power = beta,
+                                networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+
+                                # == Tree and Block Options ==
+                                deepSplit = 2,
+                                pamRespectsDendro = F,
+                                minModuleSize = 3,
+                                maxBlockSize = 6000,
+
+                                # == Module Adjustments ==
+                                reassignThreshold = 0,
+                                mergeCutHeight = 0.25,
+
+                                # == Output Options
+                                numericLabels = T,
+                                verbose = 0)
+
+      # Saving network
+      my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_promoter/", "filtered_before_resampling_n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
+      saveRDS(netwk, file = my_filename)
+
+    }
+  }
+}
+
+
+#
+# CASSETTE DETECTION WITH RESAMPLINGS. All Proximal
+#
+
+# Variance filtering after resampling
+
+# cor <- WGCNA::cor
+# 
+# # Define number for resampling
+# samples_n <- c(100)
+# 
+# for (sample_n in samples_n) {
+#   
+#   # Define runs
+#   runs <- 1:20
+#   
+#   for (run in runs) {
+#     
+#     # Defining proportions for sampling
+#     proportions_of_epitypes <- prop.table(table(orig_epi$NMF_atacDistal))
+#     
+#     # Sample indices with probabilities based on the corresponding epitype
+#     sampled_indices <- sample(
+#       seq_len(nrow(orig_epi)),
+#       size = sample_n,
+#       replace = FALSE,
+#       prob = proportions_of_epitypes[as.character(orig_epi$NMF_atacDistal)]
+#     )
+#     
+#     # Getting beta values of sampled indices
+#     sampled_betas <- betaAdj[,sampled_indices]
+#     
+#     # Using only distal cpgs
+#     proximal_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "proximal dn" | annoObj$featureClass == "proximal up")]
+#     
+#     sampled_betas <- sampled_betas[rownames(sampled_betas) %in% proximal_cpgs, ]
+#     
+#     # Calculating variance of CpGs
+#     variance_dis <- sapply(1:nrow(sampled_betas), FUN = function(row) {var(sampled_betas[row,])})
+# 
+#     # Filtering CpGs with low variance
+#     sampled_betas <-  t(sampled_betas[variance_dis > 0.1,])
+#     
+#     # Defining betas to use 
+#     betas <- c(5, 10, 15)
+#     
+#     # Running WGCNA
+#     for (beta in betas) {
+#       
+#       message("Running: sample_n = ", sample_n, ", run = ", run, ", beta = ", beta)
+#       
+#       netwk <- blockwiseModules(sampled_betas,               
+#                                 corrType="bicor", # Using biweight midcorrelation 
+#                                 nThreads = 10,
+#                                 
+#                                 # == Adjacency Function ==
+#                                 power = beta,             
+#                                 networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+#                                 
+#                                 # == Tree and Block Options ==
+#                                 deepSplit = 2,
+#                                 pamRespectsDendro = F,
+#                                 minModuleSize = 3,
+#                                 maxBlockSize = 6000,
+#                                 
+#                                 # == Module Adjustments ==
+#                                 reassignThreshold = 0,
+#                                 mergeCutHeight = 0.25,
+#                                 
+#                                 # == Output Options
+#                                 numericLabels = T,
+#                                 verbose = 0)
+#       
+#       # Saving network
+#       my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/", "n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
+#       saveRDS(netwk, file = my_filename)
+#       
+#     }
+#   }
+# }
+
+# Variance filtering before resampling
+
+cor <- WGCNA::cor
+
+# Define number for resampling
+samples_n <- c(100)
+
+# Run variance based filtering before running WGCNA
+variance_dis <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[row,])})
+
+for (sample_n in samples_n) {
+  
+  # Define runs
+  runs <- 1:20
+  
+  for (run in runs) {
+    
+    # Filtering CpGs with low variance
+    sampled_betas <-  betaAdj[variance_dis > 0.05,]
+    
+    # Defining proportions for sampling
+    proportions_of_epitypes <- prop.table(table(orig_epi$NMF_atacDistal))
+    
+    # Sample indices with probabilities based on the corresponding epitype
+    sampled_indices <- sample(
+      seq_len(nrow(orig_epi)),
+      size = sample_n,
+      replace = FALSE,
+      prob = proportions_of_epitypes[as.character(orig_epi$NMF_atacDistal)]
+    )
+    
+    # Getting beta values of sampled indices
+    sampled_betas <- sampled_betas[,sampled_indices]
+    
+    # Using only distal cpgs
+    proximal_cpgs <- annoObj$illuminaID[which(annoObj$featureClass == "proximal dn" | annoObj$featureClass == "proximal up")]
+    
+    sampled_betas <- t(sampled_betas[rownames(sampled_betas) %in% proximal_cpgs, ])
+    
+    # Defining betas to use
+    betas <- c(10)
+    
+    # Running WGCNA
+    for (beta in betas) {
+      
+      message("Running: sample_n = ", sample_n, ", run = ", run, ", beta = ", beta)
+      
+      netwk <- blockwiseModules(sampled_betas,
+                                corrType="bicor", # Using biweight midcorrelation
+                                nThreads = 10,
+                                
+                                # == Adjacency Function ==
+                                power = beta,
+                                networkType = "unsigned", #Choosing unsigned to account for positive and negative correlations
+                                
+                                # == Tree and Block Options ==
+                                deepSplit = 2,
+                                pamRespectsDendro = F,
+                                minModuleSize = 3,
+                                maxBlockSize = 6000,
+                                
+                                # == Module Adjustments ==
+                                reassignThreshold = 0,
+                                mergeCutHeight = 0.25,
+                                
+                                # == Output Options
+                                numericLabels = T,
+                                verbose = 0)
+      
+      # Saving network
+      my_filename <- paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/", "filtered_before_resampling_n_", sample_n, "_beta_", beta, "_resampling_", run, ".rds" )
+      saveRDS(netwk, file = my_filename)
+      
+    }
+  }
+}
+
 
 #
 # ANALYSE OUTPUT
@@ -193,7 +513,7 @@ distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassette
 ### USED CPGS PER RESAMPLING
 
 # List files of interest
-my_files <- list.files("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/")
+my_files <- list.files("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/")
 my_files_60 <- my_files[grepl("^n_60_beta_10_*", my_files)]
 my_files_100 <- my_files[grepl("^n_100_beta_10_*", my_files)]
 my_files_120 <- my_files[grepl("^n_120_beta_10_*", my_files)]
@@ -209,13 +529,13 @@ my_files_140_filbefore <- my_files[grepl("^filtered_before_resampling_n_140_beta
 list_of_cassettes <- list()
 list_of_samples <- list()
 
-for (file in my_files_140_filbefore) {
+for (file in my_files_100_filbefore) {
 
   # Appending cassettes
-  list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
+  list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/",
                                               file))$colors
   # Appending samples
-  list_of_samples[[file]] <- rownames(readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
+  list_of_samples[[file]] <- rownames(readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/",
                                                        file))$MEs)
 }
 
@@ -238,23 +558,10 @@ for (file_name in colnames(df_included_cpgs)) {
 # Calculating number of kept CpGs in each resampling
 used_cpgs <- rowSums(df_included_cpgs)
 
-# Plotting hist + density
-hist(rowSums(df_included_cpgs),
-     freq = FALSE,
-     breaks = 20,
-     col = "lightblue",
-     border = "black",
-     xaxt = "n",  # suppress x-axis
-     main = NULL,
-     xlab = "Resamplings",
-     ylab="Fraction of CpGs",
-     ylim=c(0,0.6))
-
-# Add your custom x-axis
-axis(side = 1, at = c(1, 5, 10, 15, 20))
+# Plotting density
 
 # Add the density line
-lines(density(rowSums(df_included_cpgs)), col = "red", lwd = 2)
+plot(density(rowSums(df_included_cpgs), 0.1), col = "red", lwd = 2, xlim=c(0,20))
 
 
 # ### HEATMAPS OF CASSETTES
@@ -308,9 +615,9 @@ list_of_cassettes <- list()
 
 # Getting cassetttes for n_resapmlings of interest
 for (file in my_files_100_filbefore) {
-  
+
   # Appending cassettes
-  list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
+  list_of_cassettes[[file]] <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/",
                                               file))$colors
 }
 
@@ -331,182 +638,194 @@ for (n_col in names(list_of_cassettes)) {
 
 
 # Defining dataframe to save cassette assignment for the whole cohort
-original_assigments_df <- data.frame("CpG" = names(distal_10$colors),
-                           "Cassettes" = distal_10$colors)
+original_assigments_df <- data.frame("CpG" = names(proximal_10$colors),
+                            "Cassettes" = proximal_10$colors)
 
-# Define cassette to analyse
-cassette_to_analyse <- 1
+# PLOTTING
 
-# Initialize empty list
-cassette_prop_df <- list()  
+# Define consistent cassette colors
+cassette_levels <- as.character(1:10)  # adjust to match all possible cassette values
+cassette_colors <- setNames(brewer.pal(length(cassette_levels), "Set3"), cassette_levels)
+cassette_colors <- c(cassette_colors, "0" = "grey80", "NA" = "grey50", "Others" = "black")
 
-for (res_num in 1:20) {
-  # Calculate proportions
-  proportions <- prop.table(table(
-    df_of_cassette_assignments[
-      rownames(original_assigments_df[original_assigments_df$Cassettes == cassette_to_analyse, ]), res_num
-    ],
-    useNA = "ifany"
-  ))
+# Initialize list of combined plots
+combined_plots <- list()
+
+for (cassette_to_analyse in 1:5) {
+  cassette_prop_df_list <- list()
   
-  # Get top cluster (excluding "0" and NA)
-  valid_names <- names(proportions)[!names(proportions) %in% c("0", NA)]
-  top_cassette <- names(which.max(proportions[valid_names]))
+  for (res_num in 1:20) {
+    proportions <- prop.table(table(
+      df_of_cassette_assignments[
+        rownames(original_assigments_df[original_assigments_df$Cassettes == cassette_to_analyse, ]), res_num
+      ],
+      useNA = "ifany"
+    ))
+    
+    valid_names <- names(proportions)[!names(proportions) %in% c("0", NA)]
+    top_cassette <- names(which.max(proportions[valid_names]))
+    low_names <- setdiff(valid_names, top_cassette)
+    
+    grouped <- proportions
+    grouped["Others"] <- sum(grouped[low_names])
+    grouped <- grouped[!(names(grouped) %in% low_names)]
+    
+    df <- data.frame(
+      Cluster = names(grouped),
+      Proportion = as.numeric(grouped),
+      Resampling = colnames(df_of_cassette_assignments)[res_num]
+    )
+    
+    df$Cluster[df$Cluster == top_cassette] <- "Most_common_cassette"
+    df$Cluster[df$Cluster == "0"] <- "Unclassified"
+    df$Cluster[is.na(df$Cluster)] <- "Filtered"
+    
+    cassette_prop_df_list[[res_num]] <- df
+  }
   
-  # Identify low frequency clusters to group as "Other"
-  low_names <- setdiff(valid_names, top_cassette)
+  cassette_prop_df <- bind_rows(cassette_prop_df_list)
   
-  # Grouping
-  grouped <- proportions
-  grouped["Others"] <- sum(grouped[low_names])
-  grouped <- grouped[!(names(grouped) %in% low_names)]
+  # Get correct Resampling order based on most common cassette
+  resampling_order <- cassette_prop_df %>%
+    filter(Cluster == "Most_common_cassette") %>%
+    arrange(desc(Proportion)) %>%
+    distinct(Resampling)
   
-  # Convert to data.frame
-  df <- data.frame(
-    Cluster = names(grouped),
-    Proportion = as.numeric(grouped),
-    Resamplings = colnames(df_of_cassette_assignments)[res_num]
+  cassette_prop_df$Resampling <- factor(
+    cassette_prop_df$Resampling,
+    levels = resampling_order$Resampling
   )
   
-  # Rename clusters
-  df$Cluster[df$Cluster == top_cassette] <- "Most_common_cassette"
-  df$Cluster[df$Cluster == "0"] <- "Unclassified"
-  df$Cluster[is.na(df$Cluster)] <- "Filtered"
+  # Plot 1: Proportions per Resampling
+  plot1 <- ggplot(cassette_prop_df, aes(x = Resampling, y = Proportion,
+                                        color = Cluster, group = Cluster)) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    ylim(0,1) +
+    theme_minimal() +
+    labs(y = "Cassette assignment \nper resampling", x = paste("Cassette", cassette_to_analyse)) +
+    theme(axis.text.x = element_blank(), plot.title = element_text(hjust = 0.5)) +
+    scale_color_manual(values = c(
+      "Most_common_cassette" = "red",
+      "Unclassified" = "grey70",
+      "Filtered" = "grey30",
+      "Others" = "black"
+    ))
   
-  cassette_prop_df[[res_num]] <- df
-}
-
-
-# Combine all into one data frame
-cassette_prop_df <- bind_rows(cassette_prop_df)
-
-# Sort by proportion of most_common_cluster
-resampling_order <- cassette_prop_df %>%
-  filter(Cluster == "Most_common_cassette") %>%
-  arrange(desc(Proportion))
-
-# Plot scatterplot with lines connecting points for each Cluster
-plot1 <- ggplot(cassette_prop_df, aes(x = factor(cassette_prop_df$Resampling, resampling_order$"Resamplings"), y = Proportion, color = Cluster, group = Cluster)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  theme_minimal() +
-  labs(y = "Cassette assignment \nper resampling", x = "") +
-  theme(axis.text.x = element_blank()) +
-  scale_color_brewer(palette = "Set1")
-
-# Plotting 
-
-list_of_most_common_cassette_composition <- list()
-
-# Getting most common non NA, and 0 cassette in each resampling
-for (resampling_file in unique(resampling_order$Resamplings)) {
+  # Collect composition of most common cassettes
+  list_of_most_common_cassette_composition <- list()
   
-  # Read file
-  my_cassettes <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/",
-      resampling_file))$colors
-  
-  # Calculating proportions
-  proportions <- prop.table(table(
+  for (resampling_file in unique(resampling_order$Resampling)) {
+    my_cassettes <- readRDS(paste0(
+      "/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/",
+      resampling_file
+    ))$colors
+    
+    proportions <- prop.table(table(
       my_cassettes[original_assigments_df$CpG[original_assigments_df$Cassettes == cassette_to_analyse]],
-    useNA = "ifany"
-  ))
+      useNA = "ifany"
+    ))
+    
+    valid_names <- names(proportions)[!names(proportions) %in% c("0", NA)]
+    top_cassette <- names(which.max(proportions[valid_names]))
+    cpgs_to_plot <- names(my_cassettes)[my_cassettes == top_cassette]
+    
+    list_of_most_common_cassette_composition[[resampling_file]] <- original_assigments_df[cpgs_to_plot, ]
+  }
   
-  valid_names <- names(proportions)[!names(proportions) %in% c("0", NA)]
-  top_cassette <- names(which.max(proportions[valid_names]))
+  list_of_most_common_cassette_composition <- lapply(
+    list_of_most_common_cassette_composition,
+    function(res) { prop.table(table(unname(res$Cassettes), useNA = "ifany")) }
+  )
   
-  # Getting CpGs from the most common cassette
-  cpgs_to_plot <- names(my_cassettes)[my_cassettes == top_cassette]
+  to_plot_df <- lapply(names(list_of_most_common_cassette_composition), function(resamp) {
+    props <- list_of_most_common_cassette_composition[[resamp]]
+    data.frame(
+      Resampling = resamp,
+      Cassette = names(props),
+      Proportion = as.numeric(props),
+      stringsAsFactors = FALSE
+    )
+  }) %>% bind_rows()
   
-  # Saving in the list
-  list_of_most_common_cassette_composition[[resampling_file]] <- original_assigments_df[cpgs_to_plot, ]
+  # Group low proportions and fix labels
+  to_plot_df$Cassette_grouped <- ifelse(
+    to_plot_df$Cassette %in% c("NA", "0"), to_plot_df$Cassette,
+    ifelse(to_plot_df$Proportion < 0.05, "Others", to_plot_df$Cassette)
+  )
   
+  to_plot_df <- to_plot_df %>%
+    group_by(Resampling, Cassette_grouped) %>%
+    summarise(Proportion = sum(Proportion), .groups = "drop")
+  
+  # Set factor levels again
+  to_plot_df$Resampling <- factor(to_plot_df$Resampling, levels = resampling_order$Resampling)
+  
+  # Plot 2: Composition bar plot
+  plot2 <- ggplot(to_plot_df, aes(x = Resampling, y = Proportion, fill = Cassette_grouped)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    labs(x = NULL, y = "Composition of most \ncommon cassette", fill = "Cassette") +
+    theme(axis.text.x = element_blank()) +
+    scale_fill_manual(values = cassette_colors)
+  
+  # Combine and store
+  combined_plots[[cassette_to_analyse]] <- plot1 / plot2 + plot_layout(heights = c(1, 1))
 }
 
-# Transforming data to list of cassette proportions
-list_of_most_common_cassette_composition <- lapply(list_of_most_common_cassette_composition, function(res) {prop.table(table(unname(res$Cassettes), useNA = "ifany"))})
-
-# Convert list of named vectors into a tidy data frame
-to_plot_df <- lapply(names(list_of_most_common_cassette_composition), function(resamp) {
-  props <- list_of_most_common_cassette_composition[[resamp]]
-  data.frame(
-    Resampling = resamp,
-    Cassette = names(props),
-    Proportion = as.numeric(props),
-    stringsAsFactors = FALSE
-  )
-}) %>% bind_rows()
-
-# Grouping
-to_plot_df$Cassette_grouped <- ifelse(
-  to_plot_df$Cassette %in% c("NA", "0"), to_plot_df$Cassette,
-  ifelse(to_plot_df$Proportion < 0.05, "Others", to_plot_df$Cassette)
-)
-
-to_plot_df <- to_plot_df %>%
-  group_by(Resampling, Cassette_grouped) %>%
-  summarise(Proportion = sum(Proportion), .groups = "drop")
-
-plot2 <- ggplot(to_plot_df, aes(x = factor(to_plot_df$Resampling, resampling_order$"Resamplings"), y = Proportion, fill = Cassette_grouped)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  labs(x = "Resampling", y = "Composition of most \ncommon cassette", fill = "Cassette") +
-  theme(axis.text.x = element_blank()) +
-  scale_fill_brewer(palette = "Set3")
-
-
-# Plotting plots
-plot1 / plot2
+# Combine all cassette plots
+wrap_plots(combined_plots, nrow = 1)
 
 # Why arent we detecting cassettes in some resamplings? Sample size and filtering
 
-# Define list of variance filtered plots
-list_of_variance_filtered_plots <- list()
-
-for (cassette in 2:5) {
-  
-  list_of_variance_filtered_plots[[cassette]] <- list()
-  
-  for (file in my_files_140) {
-    
-    a <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_distal/", file))
-    
-    subset_of_interest <- betaAdj[rownames(cassettes_df[original_assigments_df$Cassettes == cassette, ]),rownames(a$MEs)]
-    
-    var_of_subset <- apply(subset_of_interest, MARGIN = 1, FUN = var)
-    
-    # Row annotation: variance > 0.1
-    high_variance_flag <- var_of_subset > 0.1
-    high_variance_annotation <- rowAnnotation(
-      HighVariance = high_variance_flag,
-      col = list(HighVariance = c("TRUE" = "red", "FALSE" = "lightgrey")),
-      width = unit(0.5, "cm")
-    )
-    
-    # Row annotation: variance barplot
-    variance_barplot_annotation <- rowAnnotation(
-      Variance = anno_barplot(
-        var_of_subset,
-        border = FALSE,
-        gp = gpar(fill = "grey"),
-        axis_param = list(
-          at = c(0, 0.1, max(var_of_subset)),
-          labels = c("0", "0.1", round(max(var_of_subset), 2))
-        )
-      ),
-      annotation_name_side = "top"
-    )
-    
-    # Final heatmap with both annotations
-    list_of_variance_filtered_plots[[cassette]][[file]] <- Heatmap(
-      subset_of_interest,
-      use_raster = FALSE,
-      show_row_dend = FALSE,
-      show_column_dend = FALSE,
-      show_row_names = FALSE,
-      show_column_names = FALSE,
-      left_annotation = high_variance_annotation,
-      right_annotation = variance_barplot_annotation
-    )
-  }
-}
+# # Define list of variance filtered plots
+# list_of_variance_filtered_plots <- list()
+# 
+# for (cassette in 2:5) {
+#   
+#   list_of_variance_filtered_plots[[cassette]] <- list()
+#   
+#   for (file in my_files_100) {
+#     
+#     a <- readRDS(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/cassettes_resampling/all_proximal/", file))
+#     
+#     subset_of_interest <- betaAdj[rownames(cassettes_df[original_assigments_df$Cassettes == cassette, ]),rownames(a$MEs)]
+#     
+#     var_of_subset <- apply(subset_of_interest, MARGIN = 1, FUN = var)
+#     
+#     # Row annotation: variance > 0.1
+#     high_variance_flag <- var_of_subset > 0.1
+#     high_variance_annotation <- rowAnnotation(
+#       HighVariance = high_variance_flag,
+#       col = list(HighVariance = c("TRUE" = "red", "FALSE" = "lightgrey")),
+#       width = unit(0.5, "cm")
+#     )
+#     
+#     # Row annotation: variance barplot
+#     variance_barplot_annotation <- rowAnnotation(
+#       Variance = anno_barplot(
+#         var_of_subset,
+#         border = FALSE,
+#         gp = gpar(fill = "grey"),
+#         axis_param = list(
+#           at = c(0, 0.1, max(var_of_subset)),
+#           labels = c("0", "0.1", round(max(var_of_subset), 2))
+#         )
+#       ),
+#       annotation_name_side = "top"
+#     )
+#     
+#     # Final heatmap with both annotations
+#     list_of_variance_filtered_plots[[cassette]][[file]] <- Heatmap(
+#       subset_of_interest,
+#       use_raster = FALSE,
+#       show_row_dend = FALSE,
+#       show_column_dend = FALSE,
+#       show_row_names = FALSE,
+#       show_column_names = FALSE,
+#       left_annotation = high_variance_annotation,
+#       right_annotation = variance_barplot_annotation
+#     )
+#   }
+# }
 

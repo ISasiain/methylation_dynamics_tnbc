@@ -26,12 +26,18 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 
 names(genes) <- annoObj$illuminaID
 
+# Loading IDFS annotation data 
+
+# Object name: SCANBrel4_rdata
+load("PhD/Projects/project_3/data/SCANBrel4valcohort_annotations.RData") 
+rownames(SCANBrel4_rdata) <- SCANBrel4_rdata$id
+
 # Reading cassettes detected in discovery cohort
 
 # PROMOTER
 promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
-distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
-proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
+proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
 
 
 #
@@ -229,11 +235,11 @@ agreement_data <- data.frame(
 
 
 #
-# ANALYSING CASSETTES OF INTEREST. Cassette 233
+# ANALYSING CASSETTES OF INTEREST. 10
 #
 
 # Defining cpgs of interest
-cpgs_of_interest <- names(promoter_10$colors)[promoter_10$colors == 1]
+cpgs_of_interest <- names(promoter_10$colors)[promoter_10$colors == 10]
 cpgs_of_interest <- cpgs_of_interest[cpgs_of_interest %in% rownames(beta.adjusted)]
 
 # Cluster based on methylation
@@ -259,8 +265,8 @@ promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_p
 # Reorder
 promoter_state <- promoter_state[annotations$PD_ID]
 
-# ANNOTATION
 
+# ANNOTATION
 
 # Generating annotation for heatmap
 tnbc_annotation <- annotations[,"TNBCtype4"]
@@ -291,7 +297,7 @@ column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
 
 
 # Plotting heatmap
-Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
+Heatmap(beta.adjusted[cpgs_of_interest,],
         column_split = promoter_state,
         show_column_names = FALSE,
         show_row_dend =  FALSE,
@@ -299,27 +305,54 @@ Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
         use_raster = FALSE)
 
 
+# Fredlund immue response vs cluster
+sample_ids <- sapply(colnames(beta.adjusted), function(id) strsplit(id, ".l")[[1]][1])
+immune_scores <- SCANBrel4_rdata[sample_ids, "Fredlund.ImmuneResponse"]
+promoter_clusters <- promoter_state[colnames(beta.adjusted)]
+
+df <- data.frame(
+  ImmuneScore = immune_scores,
+  PromoterCluster = factor(promoter_clusters)
+)
+
+# Plot
+ggplot(df, aes(x = PromoterCluster, y = ImmuneScore)) +
+  geom_violin(fill = "black") +
+  geom_boxplot(outlier.shape = NA, fill = "gray90", col="gray60",  width=0.25) +
+  labs(
+    x = "Promoter cluster",
+    y = "Fredlund immune score"
+  ) +
+  theme_bw(base_size = 14)
+
+
 
 # Kaplan meier plot of based on methylation state
-DRFI <- annotations[, "OS"]
-DRFI_bin <- annotations[, "OSbin"]
+
+IDFS <- SCANBrel4_rdata[sapply(colnames(beta.adjusted), function (id) {strsplit(id, ".l")[[1]][1]}), "IDFS"]
+IDFS_bin <- SCANBrel4_rdata[sapply(colnames(beta.adjusted), function (id) {strsplit(id, ".l")[[1]][1]}), "IDFSbin"]
+
+
+chemo <- SCANBrel4_rdata[sapply(colnames(beta.adjusted), function (id) {strsplit(id, ".l")[[1]][1]}), "Chemotherapy"]
+
+combined <- paste(promoter_state, chemo, sep = "_")
 
 # Create the survival object
-surv_obj <- Surv(time = DRFI, event = DRFI_bin)
+surv_obj <- Surv(time = IDFS, event = IDFS_bin)
 
 # Fit Kaplan-Meier survival curves stratified by promoter_state
-fit <- survfit(surv_obj ~ promoter_state)
+fit <- survfit(surv_obj ~ combined)
 
 # Plot Kaplan-Meier curves
 ggsurvplot(
   fit,
-  data = data.frame(DRFI = DRFI, DRFI_bin = DRFI_bin, promoter_state = promoter_state),
+  data = data.frame(IDFS = IDFS, IDFS_bin = IDFS_bin, promoter_state = promoter_state),
   pval = TRUE,                 
-  conf.int = TRUE,
+  conf.int = FALSE,
   risk.table = TRUE,      
   legend.title = "Promoter State",
-  xlab = "Time (DRFI)",
-  ylab = "Survival Probability",
+  xlab = "Time",
+  ylab = "Survival Probability (IDFS)",
   palette = "Dark2"             
 )
 
