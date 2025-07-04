@@ -54,11 +54,15 @@ rownames(u.frame) <- u.frame$PD_ID
 # Loading promoter cassettes
 promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
+# Cibersort output
+tum_cibersort <- read.csv("PhD/Projects/project_3/analysis/cell_type_deconvolution/CIBERSORTx_tumour.csv")
+rownames(tum_cibersort) <- tum_cibersort$Mixture
+
 #
 # PLOTTING CPGS AFFECTING 
 #
 
-current_gene_id = "BRCA1"
+current_gene_id = "GBP4"
   
   pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
   tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
@@ -105,7 +109,7 @@ current_gene_id = "BRCA1"
   )
   
   # CpG annotation. Context and included in cassette
-  left_annotation <- rowAnnotation("CpG_in_cassette" = names(genes)[genes == current_gene_id] %in% names(promoter_10$colors)[promoter_10$colors == 11],
+  left_annotation <- rowAnnotation("CpG_in_cassette" = names(genes)[genes == current_gene_id] %in% names(proximal_10$colors)[proximal_10$colors == 1],
                                    "Context"= annoObj$CpG_context[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
                                    col=list("Context"=c("Distal" = "#f8766d", 
                                                         "Promoter" = "#00ba38", 
@@ -517,111 +521,50 @@ Heatmap(clusters_methylation,
         column_split = as.factor(tnbc_annotation))
 
 
-agreement_data <- data.frame(
-  Agreement = agreement_categories
-)
 
-# Plot proportions
-ggplot(agreement_data, aes(x = Agreement, y = ..prop.., group = 1)) +
-  geom_bar(stat = "count",fill = "darkgrey") +  # Counts are converted to proportions automatically
-  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentages
-  labs(x = "Agreement in methylation state",
-       y = "Proportion") +
-  theme_bw()
+#
+# PLOTTNG FREDLUND STROMA, IMMUNE AND TILS VS HYPERMETHYLATION AGREEMENT
+#
 
-# Simulating proportions if the methylation states were randomly generated
 
-set.seed(123)
+# Fredlund stroma
+p1 <- ggplot(data.frame(Hyper = as.factor(agreement_hyper),
+                  Value = x[names(agreement_hyper), "Fredlund.rank.signatures"][, "Stroma"]),
+       aes(x = Hyper, y = Value)) +
+  geom_boxplot(fill = "goldenrod", alpha = 0.7) +
+  labs(x = "Hypermethylated genes", y = "Fredlund stroma") +
+  theme_bw(base_size = 14) 
 
-# Parameters
-n_reps <- 100000  # Number of simulations (each sim is 235 samples)
-n_per_rep <- 235
-probs <- c(0.7, 0.3)
-elements <- c("A", "B")
-
-# Pre-allocate storage for results
-results <- data.frame(rep = 1:n_reps, p3 = NA, p4 = NA, p5 = NA)
-
-for (i in 1:n_reps) {
-  # Simulate one batch of 235 samples
-  samples <- replicate(n_per_rep, sample(elements, size = 5, replace = TRUE, prob = probs))
-  max_counts <- apply(samples, 2, function(x) max(table(x)))
-  
-  # Store proportions
-  results$p3[i] <- mean(max_counts == 3)
-  results$p4[i] <- mean(max_counts == 4)
-  results$p5[i] <- mean(max_counts == 5)
-}
-
-# Reshape to long format for ggplot
-long_results <- results %>%
-  pivot_longer(cols = c("p3", "p4", "p5"), names_to = "EqualCount", values_to = "Proportion")
-
-# Map better labels
-long_results$EqualCount <- recode(long_results$EqualCount,
-                                  p3 = "3 equal", p4 = "4 equal", p5 = "5 equal")
-
-# Plot density
-ggplot(long_results, aes(x = Proportion, fill = EqualCount, color = EqualCount)) +
-  geom_histogram(aes(y = ..count../sum(..count..)), bins = 60, alpha = 0.4, position = "identity") +
-  labs(title = "Proportions of Equal Elements (100,000 simulations)",
-       x = "Proportion of samples (N=235)",
-       y = "Probability",
-       fill = "Equal elements",
-       color = "Equal elements") +
+# MethylCIBERSORT Fibroblast fraction
+p2 <- ggplot(data.frame(Hyper = as.factor(agreement_hyper),
+                  Value = tum_cibersort[names(agreement_hyper), "Fibroblast"]),
+       aes(x = Hyper, y = Value)) +
+  geom_boxplot(fill = "goldenrod", alpha = 0.7) +
+  labs(x = "Hypermethylated genes", y = "MethylCIBERSORT\nFibroblast fraction") +
   theme_bw(base_size = 14)
 
+# Combine and add shared x label
+(p1 / p2) +
+  plot_layout(guides = "collect")
 
 
-#
-# SURVIVAL 
-#
+# Fredlund immune response
+p1 <- ggplot(data.frame(Hyper = as.factor(agreement_hyper),
+                  Value = x[names(agreement_hyper), "Fredlund.rank.signatures"][, "ImmuneResponse"]),
+       aes(x = Hyper, y = Value)) +
+  geom_boxplot(fill = "goldenrod", alpha = 0.7) +
+  labs(x = "Hypermethylated genes", y = "Fredlund\nimmune response") +
+  theme_bw(base_size = 14)
 
-library(survival)
+# TILs
+p2 <- ggplot(data.frame(Hyper = as.factor(agreement_hyper),
+                  Value = x[names(agreement_hyper), "TILs"]),
+       aes(x = Hyper, y = Value)) +
+  geom_boxplot(fill = "goldenrod", alpha = 0.7) +
+  labs(x = "Hypermethylated genes", y = "TILs") +
+  theme_bw(base_size = 14)
 
-# Extract relevant data
-cox_data <- data.frame(
-  time = x[colnames(clusters_methylation), "OS"],
-  status = x[colnames(clusters_methylation), "OSbin"],
-  age = x[colnames(clusters_methylation), "Age"],
-  OAS2 = t(clusters_methylation["OAS2",]),
-  GBP4 = t(clusters_methylation["GBP4",]),
-  SAMD9L = t(clusters_methylation["SAMD9L",]),
-  CARD16 = t(clusters_methylation["CARD16",])
-)
-
-
-# Fit Cox model with methylation and age as covariates
-fit <- coxph(Surv(time, status) ~ SAMD9L + age, data = cox_data)
-
-# Show summary
-summary(fit)
-
-# Compare with other genes 
-
-genes_to_test <- c("SOX10", "WIF1", "SFRP1", "FASN", "SREBF1", "MSMO1", 
-  "HMGCS1", "HMGCR", "INSIG1", "FDFT1", "SCD", "SC5D")
-
-
-
-# Plotting
-gene_ref <- "KDM6B"
-par(mar=c(1,1,1,1))
-plot_list <- list()
-
-for (gene in genes_to_test) {
-  
-  my_df <- data.frame("Gene" = unname(t(fpkm_data[gene, colnames(clusters_methylation)])),
-       "Methylation" = unname(t(clusters_methylation[gene_ref,])))
-  
-  plot_list[[gene]] <- ggplot(my_df, aes(x = Methylation, y = Gene)) +
-    geom_boxplot(fill="lightgreen") + 
-    ggtitle(paste("Plot for Gene:", gene)) +
-    xlab("Methylation") +
-    ylab("FPKM") +
-    theme_bw()
-  
-}
-
-wrap_plots(plot_list)
+# Combine and add shared x label
+(p1 / p2) +
+  plot_layout(guides = "collect")
 

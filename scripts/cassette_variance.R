@@ -545,7 +545,7 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 #
 
 # Total beta variance
-variance_of_betas <- apply(betaAdj, MARGIN = 1, FUN=var)
+variance_of_betas <- apply(betaNew, MARGIN = 1, FUN=var)
 
 # Cassettes labels
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")$colors

@@ -106,6 +106,28 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 
 
 #
+# ADDING COHORT COMPOSITION INFORMATION
+#
+
+summary_per_tissue_12$PAM50 <- x[summary_per_tissue_12$PDid, "PAM50_NCN"]
+summary_per_tissue_12$Lehmann_4 <- x[summary_per_tissue_12$PDid, "TNBCtype4_n235_notPreCentered"]
+summary_per_tissue_12$IM <- x[summary_per_tissue_12$PDid, "TNBCtype_IMpositive"]
+summary_per_tissue_12$LN <- x[summary_per_tissue_12$PDid, "LNbinary"]
+summary_per_tissue_12$grade <- x[summary_per_tissue_12$PDid, "Grade"]
+summary_per_tissue_12$hrd <- x[summary_per_tissue_12$PDid, "HRD.2.status"]
+
+table(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
+length(summary_per_tissue_12_distinct_pdid[is.na(summary_per_tissue_12_distinct_pdid$Methylation),"IM"])
+
+# Distinct pdIDS
+summary_per_tissue_12_distinct_pdid <- summary_per_tissue_12 %>%
+       distinct(PDid, .keep_all = TRUE)
+
+table(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
+nrow(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
+
+
+#
 # FILTERING AND SUMMARIZING TUMOR CELLS
 #
 
@@ -158,10 +180,6 @@ summary_per_tissue_12 <- oas2_per_cell_12 %>%
     mean_AR = mean(AR_Count, na.rm = TRUE),
     prop_AR = mean(AR_Count > 0, na.rm = TRUE)
   )
-
-
-# Adding PAM5O annotations
-summary_per_tissue_12$PAM50 <- x[summary_per_tissue_12$PDid, "PAM50_Basal_NCN"]
 
 
 ### PLOTTING

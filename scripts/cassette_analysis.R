@@ -255,9 +255,11 @@ for (file in all_files) {
 
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-distal_files <- distal_files[!grepl("only", distal_files)]
+distal_files <- distal_files[grepl("atac", distal_files)]
 distal_files <- distal_files[!grepl("purity", distal_files)]
 distal_files <- distal_files[!grepl("only_atac_unadjusted", distal_files)]
+distal_files <- distal_files[!grepl("basal", distal_files)]
+distal_files <- distal_files[!grepl("nonBasal", distal_files)]
 
 # PLOT 1. NUMBER OF CASSETTES AND SIZE PER BETA
 
@@ -1000,7 +1002,7 @@ for (file in proximal_files) {
 
 
 #
-# SUMMARIZING CASSETTES
+# SUMMARIZING CASSE <- TTES
 #
 
 # Distal cassettes

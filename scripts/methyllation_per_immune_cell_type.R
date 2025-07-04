@@ -38,7 +38,7 @@ names(genes) <- annoObj$illuminaID
 #
 
 # Prepare plot_data as before
-selected_genes <- c("GBP4", "OAS2", "ZBP1", "CARD16", "BATF2", "SAMD9L")
+selected_genes <- c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L")
 
 plot_data <- lapply(selected_genes, function(gene) {
   cpgs <- names(genes)[genes == gene]

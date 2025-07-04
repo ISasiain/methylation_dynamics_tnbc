@@ -1,6 +1,9 @@
 #! usr/bin/Rscript
 
 library(ComplexHeatmap)
+library(ggplot2)
+library(reshape2)
+library(corrplot)
 
 
 #
@@ -79,8 +82,6 @@ Heatmap(
 # Plotting expression in cell lines and correlation
 #
 
-library(ggplot2)
-library(reshape2)
 
 # Subset and transform the expression matrix
 genes_of_interest <- c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L")
@@ -89,8 +90,6 @@ expr_mat <- log1p(gex_data_25_lines[genes_of_interest, ])
 # Reformatting names
 colnames(expr_mat) <- gsub("_RNA", "", colnames(expr_mat))
 
-# Compute mean expression per cell line
-mean_expr <- colMeans(expr_mat)
 
 # Convert to long format for ggplot
 df_long <- melt(as.matrix(expr_mat))
@@ -115,3 +114,10 @@ ggplot(df_long, aes(x = CellLine, y = Gene, color = log1p_expression, size = log
     x = NULL, y = NULL,
     color = "log1p_FPKM", size = "log1p(expr)"
   )
+
+# Transpose and compute correlation
+cor_matrix <- cor(t(expr_mat), method = "spearman")
+
+# Plot the correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", 
+         tl.col = "black", tl.srt = 45)

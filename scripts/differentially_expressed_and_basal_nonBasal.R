@@ -218,7 +218,7 @@ my_cpgs_all <- c(
   names(proximal_10$colors)[proximal_10$colors == "3"]
 )
 
-# Geenerate data frame to store groups
+# Generate data frame to store groups
 groupings_df <- data.frame(matrix(nrow = length(colnames(summary_prox10)), ncol = 5))
 rownames(groupings_df) <- colnames(summary_prox10)
 colnames(groupings_df) <- c("group_prom", "group_dis", "group_prox", "group_all", "PAM50")        
@@ -407,7 +407,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
     point.padding = 0.3
   ) +
   scale_color_manual(values = c("#1f78b4", "grey")) +  
-  scale_size(range = c(2, 6)) +                    
+  scale_size(range = c(1, 6)) +                    
   theme_classic() +
   labs(
     x = "Log2 Fold Change in Expression",
@@ -428,7 +428,7 @@ fpkm_subset_1 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 1
 fpkm_subset_2 <- fpkm_data[, rownames(groupings_df)[groupings_df$group_prox == 2]]
 
 # Identifying genes in cassette 1
-cpgs_in_cassette <- names(proximal_10$colors[proximal_10$colors == 1])
+cpgs_in_cassette <- names(proximal_10$colors[proximal_10$colors %in% c(1)])
 genes_in_cassette <- unique(genes[cpgs_in_cassette])
 
 # Count the number of CpGs linked to each gene
@@ -493,7 +493,7 @@ ggplot(results, aes(x = Log2_fold_change, y = neg_log10_p, size = CpG_Count, col
     point.padding = 0.3
   ) +
   scale_color_manual(values = c("#1f78b4", "grey")) +  
-  scale_size(range = c(2, 6)) +                    
+  scale_size(range = c(1, 6)) +                    
   theme_classic() +
   labs(
     x = "Log2 Fold Change in Expression",

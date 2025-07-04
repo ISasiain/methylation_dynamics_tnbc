@@ -27,7 +27,7 @@ variance_betas_unadj <- sapply(1:nrow(betaNew), FUN = function(row) {var(betaNew
 variance_betas_adj <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[row,])})
 
 # Filtering data
-plot(variance_betas_unadj, variance_betas_adj)
+
 
 # Selecting variance thershold in unadjusted to keep the same number of CpG s analysed
 #selected_var <- variance_betas_unadj[order(variance_betas_unadj, decreasing = TRUE)][sum(variance_betas_adj > 0.1)]
@@ -57,7 +57,7 @@ cex1 = 0.9
 
 plot(sft$fitIndices[, 1],
      -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
-     xlab = "Soft Threshold (power)",
+     xlab = "Soft Threshold (beta)",
      ylab = "Scale Free Topology Model Fit, signed R^2",
      main = paste("Scale independence")
 )
@@ -68,7 +68,7 @@ text(sft$fitIndices[, 1],
 abline(h = 0.90, col = "red")
 plot(sft$fitIndices[, 1],
      sft$fitIndices[, 5],
-     xlab = "Soft Threshold (power)",
+     xlab = "Soft Threshold (beta)",
      ylab = "Mean Connectivity",
      type = "n",
      main = paste("Mean connectivity")

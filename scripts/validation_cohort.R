@@ -65,7 +65,7 @@ rownames(gex.data) <- combined_names
 #
 
 # Defining genes of interest
-current_gene_id <- "CARD16"
+current_gene_id <- "ZBP1"
 
 # Cluster based on methylation
 cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
@@ -107,25 +107,34 @@ bottom_annotation <- HeatmapAnnotation(
   "FPKM" = anno_barplot(as.numeric(gex.data[current_gene_id,]))
 )
 
+# Generate column annotation
 column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
                                        TNBC = tnbc_annotation,
                                        Epitype = epi_annotation,
                                        IM = im_annotation,
                                        col = list(
                                          "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                         "IM"=c("0"="grey", "1"="black"),
+                                         "IM"=c("Negative"="grey", "Positive"="black"),
                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="black"),
                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
 )
 
+# Generate row annotation
+cpgs_in_cassette <- names(promoter_10$colors)[promoter_10$colors == 10]
 
+row_annotation <- rowAnnotation("CpG_in_cassette" = names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)] %in% cpgs_in_cassette,
+                                col=list("CpG_in_cassette"=c("TRUE" = "black", "FALSE" = "white")))
+
+# Plotting heatmaps
 Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
         column_split = promoter_state,
         show_column_names = FALSE,
+        show_row_names = FALSE,
         show_row_dend =  FALSE,
         bottom_annotation = bottom_annotation, 
-        top_annotation = column_annotation)
+        top_annotation = column_annotation,
+        left_annotation = row_annotation)
 
 boxplot(
     as.numeric(gex.data[current_gene_id,]) ~ promoter_state,
@@ -137,7 +146,7 @@ boxplot(
 # PLOTTING TILEPLOT OF PROMOTER HYPERMETHYLATION OF SELECTED GENES
 #
 
-gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16")
+gene_ids = c("GBP4", "ZBP1", "OAS2", "CARD16", "SAMD9L")
 
 clusters_methylation <- data.frame(matrix(ncol = ncol(beta.adjusted), nrow = length(gene_ids)))
 colnames(clusters_methylation) <- colnames(beta.adjusted)
@@ -300,6 +309,7 @@ column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
 Heatmap(beta.adjusted[cpgs_of_interest,],
         column_split = promoter_state,
         show_column_names = FALSE,
+        show_row_names = FALSE,
         show_row_dend =  FALSE,
         top_annotation = column_annotation,
         use_raster = FALSE)

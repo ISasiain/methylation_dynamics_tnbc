@@ -252,7 +252,6 @@ p_enhancers <- ggplot(df_plot, aes(x = Cassette, y = PercentMapped)) +
 #
 
 
-
 # Calculate mapping percentages of repeatsöä
 percentages_repeats <- c(
   sum(annoObj[cpgs_1, "hasAnyRepeatOverlap"]) / length(annoObj[cpgs_1, "hasAnyRepeatOverlap"]),

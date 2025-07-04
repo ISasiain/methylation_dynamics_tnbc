@@ -92,6 +92,8 @@ p1 <- ggplot(plot_df, aes(x = PAM50_Basal_NCN, y = PC1_Cassette1)) +
   labs(x = "PAM50 Basal", y = "PC1 Distal Cassette 1") +
   theme(axis.text = element_text(size = 12))
 
+wilcox.test(plot_df$PC1_Cassette1 ~ plot_df$PAM50_Basal_NCN)
+
 # Plot 2: PC1 vs HRD.2.status
 p2 <- ggplot(plot_df, aes(x = HRD.2.status, y = PC1_Cassette1)) +
   geom_boxplot(color = "black", fill = "lightgrey", outlier.shape = 16, outlier.color = "red", notch = FALSE) +
@@ -101,6 +103,8 @@ p2 <- ggplot(plot_df, aes(x = HRD.2.status, y = PC1_Cassette1)) +
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
+
+wilcox.test(plot_df$PC1_Cassette1 ~ plot_df$HRD.2.status)
 
 # Plot 3: PC1 vs Lehmann
 p3 <- ggplot(plot_df <- plot_df[!is.na(plot_df$TNBCtype4_n235_notPreCentered), ], 
@@ -113,6 +117,8 @@ p3 <- ggplot(plot_df <- plot_df[!is.na(plot_df$TNBCtype4_n235_notPreCentered), ]
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
 
+kruskal.test(plot_df$PC1_Cassette1 ~ plot_df$HRD.2.status)
+
 # Plot 4: PC1 vs IM
 p4 <- ggplot(plot_df <- plot_df[!is.na(plot_df$IM), ], 
              aes(x = IM, y = PC1_Cassette1)) +
@@ -123,6 +129,8 @@ p4 <- ggplot(plot_df <- plot_df[!is.na(plot_df$IM), ],
     axis.title.y = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank())
+
+wilcox.test(plot_df$PC1_Cassette1 ~ plot_df$IM)
 
 # PC1 VS ASCAT
 

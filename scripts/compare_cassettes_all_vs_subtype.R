@@ -340,10 +340,16 @@ for (plot in cassettes) {
                                            node = node, 
                                            next_node = next_node, 
                                            label = node)) +
-    geom_sankey(flow.alpha = 0.6, node.color = "gray") +
-    geom_sankey_label(size = 4, color = "black", fill = "white") +
-    theme_sankey(base_size = 16) +
-    theme(axis.title.x = element_blank())
+    geom_sankey(flow.alpha = 0.7, node.color = "gray40", fill = "lightgray") +
+    geom_sankey_label(size = 3.8, color = "black", fill = "white", fontface = "bold") +
+    theme_sankey(base_size = 15) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "white"),
+      plot.margin = margin(10, 10, 10, 10)
+    )
   
 }
 
@@ -357,7 +363,7 @@ combined_plot
 # FROM ATAC-ONLY TO ALL
 
 # Plotting first 10 cassettes
-cassettes <- 1:10
+cassettes <- 1:7
 plot_list <- list()
 
 # Generating plots
@@ -424,23 +430,29 @@ for (plot in cassettes) {
                                            node = node, 
                                            next_node = next_node, 
                                            label = node)) +
-    geom_sankey(flow.alpha = 0.6, node.color = "gray") +
-    geom_sankey_label(size = 4, color = "black", fill = "white") +
-    theme_sankey(base_size = 16) +
-    theme(axis.title.x = element_blank())
+    geom_sankey(flow.alpha = 0.7, node.color = "gray40", fill = "lightgray") +
+    geom_sankey_label(size = 3.8, color = "black", fill = "white", fontface = "bold") +
+    theme_sankey(base_size = 15) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "white"),
+      plot.margin = margin(10, 10, 10, 10)
+    )
   
 }
 
 
 # Plotting
-combined_plot <- wrap_plots(plot_list, nrow = 2, ncol = 5)
+combined_plot <- wrap_plots(plot_list, nrow = 1, ncol = 7)
 combined_plot
 
 
 # FROM ALL TO ATAC-ONLY
 
 # Plotting first 10 cassettes
-cassettes <- 1:10
+cassettes <- 1:7
 plot_list <- list()
 
 # Generating plots
@@ -507,16 +519,22 @@ for (plot in cassettes) {
                                            node = node, 
                                            next_node = next_node, 
                                            label = node)) +
-    geom_sankey(flow.alpha = 0.6, node.color = "gray") +
-    geom_sankey_label(size = 4, color = "black", fill = "white") +
-    theme_sankey(base_size = 16) +
-    theme(axis.title.x = element_blank())
+    geom_sankey(flow.alpha = 0.7, node.color = "gray40", fill = "lightgray") +
+    geom_sankey_label(size = 3.8, color = "black", fill = "white", fontface = "bold") +
+    theme_sankey(base_size = 15) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.background = element_rect(fill = "white"),
+      plot.background = element_rect(fill = "white"),
+      plot.margin = margin(10, 10, 10, 10)
+    )
   
 }
 
 
 # Plotting
-combined_plot <- wrap_plots(plot_list, nrow = 2, ncol = 5)
+combined_plot <- wrap_plots(plot_list, nrow = 1, ncol = 7)
 combined_plot
 
 
