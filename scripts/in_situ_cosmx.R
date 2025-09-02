@@ -10,7 +10,7 @@ library(patchwork)
 # LOADING DATA
 #
 
-# CosMs data<
+# CosMs data
 oas2_per_cell_12 <-  read.csv("/Users/isasiain/PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
 
 # Pdid to cores mapping
@@ -35,24 +35,6 @@ names(genes) <- annoObj$illuminaID
 # Load annotation file
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
-
-#
-# ASSIGN LABELS TO GMM CELL CLUSTERS
-#
-
-# Classify cells based on panck intensity
-if (mean(oas2_per_cell_12[oas2_per_cell_12$GMM_Label == 1, "Mean.PanCK"]) > mean(oas2_per_cell_12[oas2_per_cell_12$GMM_Label == 0, "Mean.PanCK"])) {
-  
-  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 1] <- "Tumor"
-  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 0] <- "Stroma"
-  
-} else {
-  
-  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 0] <- "Tumor"
-  oas2_per_cell_12$GMM_Label[oas2_per_cell_12$GMM_Label == 1] <- "Stroma"
-      
-}
-
 
 #
 # PLOT MEAN EXPRESSION OF ALL GENES (OAS2 + CONTROLS)
@@ -106,28 +88,6 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 
 
 #
-# ADDING COHORT COMPOSITION INFORMATION
-#
-
-summary_per_tissue_12$PAM50 <- x[summary_per_tissue_12$PDid, "PAM50_NCN"]
-summary_per_tissue_12$Lehmann_4 <- x[summary_per_tissue_12$PDid, "TNBCtype4_n235_notPreCentered"]
-summary_per_tissue_12$IM <- x[summary_per_tissue_12$PDid, "TNBCtype_IMpositive"]
-summary_per_tissue_12$LN <- x[summary_per_tissue_12$PDid, "LNbinary"]
-summary_per_tissue_12$grade <- x[summary_per_tissue_12$PDid, "Grade"]
-summary_per_tissue_12$hrd <- x[summary_per_tissue_12$PDid, "HRD.2.status"]
-
-table(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
-length(summary_per_tissue_12_distinct_pdid[is.na(summary_per_tissue_12_distinct_pdid$Methylation),"IM"])
-
-# Distinct pdIDS
-summary_per_tissue_12_distinct_pdid <- summary_per_tissue_12 %>%
-       distinct(PDid, .keep_all = TRUE)
-
-table(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
-nrow(summary_per_tissue_12_distinct_pdid[!is.na(summary_per_tissue_12_distinct_pdid$Methylation),"LN"])
-
-
-#
 # FILTERING AND SUMMARIZING TUMOR CELLS
 #
 
@@ -139,7 +99,7 @@ par(mfrow=c(1,1))
 boxplot(oas2_per_cell_12$Mean.PanCK ~ oas2_per_cell_12$GMM_Label)
 
 # Remove non-tumour cells from df
-oas2_per_cell_12 <- oas2_per_cell_12[oas2_per_cell_12$GMM_Label == "Tumor", ]
+oas2_per_cell_12 <- oas2_per_cell_12[oas2_per_cell_12$GMM_Label == "Tumour", ]
 
 
 # Adding pdid
@@ -155,6 +115,7 @@ oas2_per_cell_12$"Methylation" <- sapply(
     promoter_state[pdid]
   }
 )
+
 
 # SUMMARIZING
 
@@ -182,7 +143,26 @@ summary_per_tissue_12 <- oas2_per_cell_12 %>%
   )
 
 
-### PLOTTING
+#
+# ADDING COHORT COMPOSITION INFORMATION
+#
+
+# Distinct pdIDS
+summary_per_tissue_12_distinct_pdid <- summary_per_tissue_12 %>%
+  distinct(PDid, .keep_all = TRUE)
+
+# Adding annotations
+summary_per_tissue_12$PAM50 <- x[summary_per_tissue_12$PDid, "PAM50_Basal_NCN"]
+summary_per_tissue_12$Lehmann_4 <- x[summary_per_tissue_12$PDid, "TNBCtype4_n235_notPreCentered"]
+summary_per_tissue_12$IM <- x[summary_per_tissue_12$PDid, "TNBCtype_IMpositive"]
+summary_per_tissue_12$LN <- x[summary_per_tissue_12$PDid, "LNbinary"]
+summary_per_tissue_12$grade <- x[summary_per_tissue_12$PDid, "Grade"]
+summary_per_tissue_12$hrd <- x[summary_per_tissue_12$PDid, "HRD.2.status"]
+
+
+#
+# PLOTTING
+#
 
 ## BLOCK 1 and 2
 
@@ -220,19 +200,18 @@ ex_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Met
             inherit.aes = FALSE, size = 5, vjust = 0)
 
 # Proportion of cells with detected expressin of OAS2
-
-prop_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=prop_OAS2)) +
+prop_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=prop_OAS2 * 100)) +
   geom_violin(fill="black", width=1.1) +
   geom_boxplot(fill="grey90", col="grey40", width=0.13) +
   theme_bw(base_size = 14) +
   xlab(NULL) +
-  ylim(0,0.38) +
+  ylim(0,38) +
   ylab("% of tumor cells expressing OAS2") + 
   stat_compare_means(method = "wilcox.test", label = "p.format", 
                      comparisons = list(c("Hypomethylated", "Hypermethylated")), 
                      label.x = c("Hypomethylated", "Hypermethylated"),
-                     label.y = 0.35, size = 5) +
-  geom_text(data = label_df, aes(x = Methylation, y = 0.3, label = label), 
+                     label.y = 35, size = 5) +
+  geom_text(data = label_df, aes(x = Methylation, y = 30, label = label), 
             inherit.aes = TRUE, size = 5, vjust = 0)
 
 ex_plot | prop_plot
@@ -261,7 +240,7 @@ boxplot(summary_per_tissue_12$mean_AR ~ summary_per_tissue_12$PAM50,
         ylim = c(0, 2),
         frame = FALSE)
 
-# Add the annotation below the x-axis
+# Add the annotation
 text(x = 1:2, y = 1.7, labels = labels_with_counts, xpd = TRUE, cex = 0.8)
 
 
@@ -279,52 +258,18 @@ wilcox_res <- wilcox.test(summary_per_tissue_12$mean_AR ~ summary_per_tissue_12$
 
 # Add p-value to plot
 pval <- wilcox_res$p.value
-text(x = 1.1, 
-     y = 1, 
-     labels = paste0("Mann-Whitney p = ", signif(pval, 3)),
+text(x = 1.3, 
+     y = 1.2, 
+     labels = paste0("Wilcoxon's p = ", signif(pval, 3)),
      pos = 3, cex = 0.9)
 
 
-# Proportion of cells with detected expressin of OAS2
+#
+# SAVING DATA
+#
 
-# Count number of data points per class
-counts_cores <- table(summary_per_tissue_12$PAM50)
-counts_samples <- c("Basal" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$PAM50 == "Basal","PDid"]))),
-                    "nonBasal" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$PAM50 == "nonBasal","PDid"]))))
-
-
-labels_with_counts <- paste0(
-  "n=", counts_cores[names(counts_cores)], 
-  "\ns=", counts_samples[names(counts_cores)]
-)
+write.csv(oas2_per_cell_12[c("Tissue_ID", "GMM_Label", "Mean.PanCK", "OAS2_Count", "batch", "PDid", "Methylation")],
+          "/Users/isasiain/PhD/Projects/project_3/data/supp_data/cosmx_supp_data.csv")
 
 
-# Draw boxplot with custom x-axis labels
-boxplot(summary_per_tissue_12$prop_AR ~ summary_per_tissue_12$PAM50,
-        ylab = "Proportion of Tumour cells expressing",
-        xlab = "Promoter Methylation",,
-        ylim = c(0, 0.4),
-        frame = FALSE)
 
-# Add the annotation below the x-axis
-text(x = 1:2, y = 0.35, labels = labels_with_counts, xpd = TRUE, cex = 0.8)
-
-
-# Add jittered points
-stripchart(summary_per_tissue_12$prop_AR ~ summary_per_tissue_12$PAM50,
-           method = "jitter", 
-           pch = 16,
-           cex = 0.6,
-           col = rgb(0, 0, 0, 0.5),
-           vertical = TRUE,
-           add = TRUE)
-
-# Perform Wilcoxon test
-wilcox_res <- wilcox.test(summary_per_tissue_12$prop_AR ~ summary_per_tissue_12$PAM50)
-
-# Add p-value to plot
-pval <- wilcox_res$p.value
-text(x = 1.1, 
-     y = 0.25, 
-     labels = paste0("Mann-Whitney p = ", signif(pval, 3)),
-     pos = 3, cex = 0.9)

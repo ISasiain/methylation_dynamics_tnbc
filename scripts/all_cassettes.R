@@ -30,10 +30,10 @@ variance_betas_adj <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[r
 
 
 # Selecting variance thershold in unadjusted to keep the same number of CpG s analysed
-#selected_var <- variance_betas_unadj[order(variance_betas_unadj, decreasing = TRUE)][sum(variance_betas_adj > 0.1)]
+selected_var <- variance_betas_unadj[order(variance_betas_unadj, decreasing = TRUE)][sum(variance_betas_adj > 0.1)]
 
-selected_var <- 0.1
-cpgs_to_analyse <- t(betaAdj[variance_betas_adj > selected_var,])
+#selected_var <- 0.1
+cpgs_to_analyse <- t(betaNew[variance_betas_adj > selected_var,])
 
 dim(cpgs_to_analyse)
 

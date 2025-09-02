@@ -8,6 +8,9 @@ library(gprofiler2)
 # LOADING DATA
 #
 
+# Loading dicovery betas
+load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
+
 load("/Volumes/Data/Project_3/validation_cohort/Combined_annotations_rel4SCANB_deNovoMainNMF_distalAtac5000_supervisedSubNMF.RData")
 load("/Volumes/Data/Project_3/validation_cohort/FPKM_rel4TNBC_validationCohort_n136.RData")
 load("/Volumes/Data/Project_3/validation_cohort/PurBeta_adjustedTumor_betaMatrix_V1_V2_reduced_717459commonCpGs_TNBCs_n136.RData")
@@ -26,15 +29,13 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 
 names(genes) <- annoObj$illuminaID
 
-# Loading IDFS annotation data 
 
 # Object name: SCANBrel4_rdata
-load("PhD/Projects/project_3/data/SCANBrel4valcohort_annotations.RData") 
+load("/Users/isasiain/PhD/Projects/project_3/data/SCANBrel4valcohort_annotations.RData") 
 rownames(SCANBrel4_rdata) <- SCANBrel4_rdata$id
 
 # Reading cassettes detected in discovery cohort
 
-# PROMOTER
 promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
@@ -65,7 +66,7 @@ rownames(gex.data) <- combined_names
 #
 
 # Defining genes of interest
-current_gene_id <- "ZBP1"
+current_gene_id <- "SAMD9L"
 
 # Cluster based on methylation
 cpgs <- setNames(annoObj$featureClass[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
@@ -90,16 +91,13 @@ promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_p
 
 # Generating annotation for heatmap
 tnbc_annotation <- annotations[,"TNBCtype4"]
-im_annotation <- annotations[,"TNBCtype_IM"]
-im_annotation <- sapply(im_annotation, function(x) {
-  
-  if (is.na(x)) {NA}
-  else if (x == 1) {"Positive"}
-  else if (x == 0) {"Negative"}
-})
-
 epi_annotation <- annotations[,"NMF_ATAC_finalSubClusters"]
 pam50_annotation <- annotations[,"NCN_PAM50"]
+pam50_annotation <- ifelse(pam50_annotation == "Uncl.", 
+                            "Uncl.", 
+                            ifelse(pam50_annotation == "Basal", 
+                                   "Basal", 
+                                   "Non-Basal"))
 
 
 # Generate bottom annotation
@@ -111,10 +109,8 @@ bottom_annotation <- HeatmapAnnotation(
 column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
                                        TNBC = tnbc_annotation,
                                        Epitype = epi_annotation,
-                                       IM = im_annotation,
                                        col = list(
-                                         "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                         "IM"=c("Negative"="grey", "Positive"="black"),
+                                         "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="black"),
                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
@@ -134,12 +130,12 @@ Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
         show_row_dend =  FALSE,
         bottom_annotation = bottom_annotation, 
         top_annotation = column_annotation,
-        left_annotation = row_annotation)
-
-boxplot(
-    as.numeric(gex.data[current_gene_id,]) ~ promoter_state,
-    ylab="FPKM"
-)
+        left_annotation = row_annotation,
+        clustering_distance_columns =  "euclidean",
+        clustering_method_columns = "ward.D2",
+        clustering_distance_rows =  "euclidean",
+        clustering_method_rows = "ward.D2",
+        name = "Beta")
 
 
 #
@@ -195,11 +191,9 @@ agreement_hyper <- colSums(numeric_matrix == 1)
 # Defining annotations
 top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
                                     TNBC = tnbc_annotation,
-                                    IM = im_annotation,
                                     Epitype = epi_annotation,
                                     col = list(
-                                      "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                      "IM"=c("Negative"="grey", "Positive"="black"),
+                                      "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
                                       "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
                                       "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
                                                   "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue")
@@ -208,10 +202,30 @@ top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
 
 agreement_hyper_annotation <- HeatmapAnnotation("Consenus" = anno_barplot(unname(agreement_hyper)))
 
-# Plotting
+# Function to convert pvals to stars
+pval_to_stars <- function(pval) {
+  if (pval <= 0.0001) return("****")
+  else if (pval <= 0.001) return("***")
+  else if (pval <= 0.01) return("**")
+  else if (pval <= 0.05) return("*")
+  else return("ns") 
+}
+
+# Basal/nonBasal
+
+pval_stars <- sapply(1:5, function(idx) {
+  pval <- chisq.test(clusters_methylation[idx, ], pam50_annotation == "Basal")$p.value
+  pval_to_stars(pval)
+})
+
+chi_p_annotation <- rowAnnotation(
+  pvalue = anno_text(pval_stars, gp = gpar(fontsize = 10))
+)
+
 Heatmap(clusters_methylation,
         col = c("red", "blue"),
         top_annotation = top_annotation,
+        left_annotation = chi_p_annotation,
         bottom_annotation = agreement_hyper_annotation,
         show_column_names = FALSE,
         show_row_names = TRUE,
@@ -220,27 +234,35 @@ Heatmap(clusters_methylation,
         cluster_columns = FALSE,
         column_split = as.factor(ifelse(pam50_annotation == "Basal", "Basal", "NonBasal")))
 
+# Lehmann
 
-agreement_data <- data.frame(
-  Agreement = agreement_categories
+keep <- !is.na(tnbc_annotation) & tnbc_annotation != "UNS"
+
+pval_stars <- sapply(1:5, function(idx) {
+  pval <- chisq.test(clusters_methylation[idx, keep], tnbc_annotation[keep])$p.value
+  pval_to_stars(pval)
+})
+
+
+chi_p_annotation <- rowAnnotation(
+  pvalue = anno_text(pval_stars, gp = gpar(fontsize = 10))
 )
 
+# Setting order
+tnbc_annotation <- factor(tnbc_annotation, levels = c("BL1", "BL2", "M", "LAR"))
 
-Heatmap(clusters_methylation,
+Heatmap(clusters_methylation[,keep],
         col = c("red", "blue"),
-        top_annotation = top_annotation,
-        bottom_annotation = agreement_hyper_annotation,
+        top_annotation = top_annotation[keep],
+        bottom_annotation = agreement_hyper_annotation[keep],
+        left_annotation = chi_p_annotation,
         show_column_names = FALSE,
         show_row_names = TRUE,
         name = "Methylation",
         cluster_rows = FALSE,
         cluster_columns = FALSE,
-        column_split = tnbc_annotation)
+        column_split = tnbc_annotation[keep])
 
-
-agreement_data <- data.frame(
-  Agreement = agreement_categories
-)
 
 
 #
@@ -275,30 +297,11 @@ promoter_state <- if (mean(beta.adjusted[names(cpgs)[cpgs=="promoter"],cluster_p
 promoter_state <- promoter_state[annotations$PD_ID]
 
 
-# ANNOTATION
-
-# Generating annotation for heatmap
-tnbc_annotation <- annotations[,"TNBCtype4"]
-im_annotation <- annotations[,"TNBCtype_IM"]
-im_annotation <- sapply(im_annotation, function(x) {
-  
-  if (is.na(x)) {NA}
-  else if (x == 1) {"Positive"}
-  else if (x == 0) {"Negative"}
-})
-
-epi_annotation <- annotations[,"NMF_ATAC_finalSubClusters"]
-pam50_annotation <- annotations[,"NCN_PAM50"]
-
-
-
 column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
                                        TNBC = tnbc_annotation,
                                        Epitype = epi_annotation,
-                                       IM = im_annotation,
                                        col = list(
-                                         "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                         "IM"=c("Negative"="grey", "Positive"="black"),
+                                         "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="black"),
                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
@@ -311,8 +314,31 @@ Heatmap(beta.adjusted[cpgs_of_interest,],
         show_column_names = FALSE,
         show_row_names = FALSE,
         show_row_dend =  FALSE,
+        clustering_distance_columns = "euclidean",
+        clustering_method_columns = "ward.D2",
         top_annotation = column_annotation,
-        use_raster = FALSE)
+        use_raster = FALSE,
+        name = "Beta")
+
+# Promoter state vs subtypes
+pam50_vs_methyl <- as.data.frame(table(pam50_annotation, as.factor(unname(promoter_state))))
+
+ggplot(pam50_vs_methyl, aes(x = Var2, y = Freq, fill = pam50_annotation)) +
+  geom_bar(stat = "identity", position = "stack") +
+  theme_bw(base_size = 14) +
+  labs(x = "Promoter state", y = "Count", fill = "PAM50 subtype") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+
+lehmann_vs_methyl <- as.data.frame(table(tnbc_annotation, as.factor(unname(promoter_state))))
+
+lehmann_vs_methyl <- lehmann_vs_methyl[lehmann_vs_methyl$tnbc_annotation != "UNS",]
+
+ggplot(lehmann_vs_methyl, aes(x = Var2, y = Freq, fill = tnbc_annotation)) +
+  geom_bar(stat = "identity", position = "stack") +
+  theme_bw(base_size = 14) +
+  labs(x = "Promoter state", y = "Count", fill = "PAM50 subtype") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 # Fredlund immue response vs cluster
@@ -325,14 +351,22 @@ df <- data.frame(
   PromoterCluster = factor(promoter_clusters)
 )
 
-# Plot
+# Compute group sizes
+df_counts <- df %>%
+  group_by(PromoterCluster) %>%
+  summarise(n = n(), .groups = "drop")
+
+# Plot with group size annotation
 ggplot(df, aes(x = PromoterCluster, y = ImmuneScore)) +
   geom_violin(fill = "black") +
-  geom_boxplot(outlier.shape = NA, fill = "gray90", col="gray60",  width=0.25) +
-  labs(
-    x = "Promoter cluster",
-    y = "Fredlund immune score"
+  geom_boxplot(outlier.shape = NA, fill = "gray90", col = "gray60", width = 0.25) +
+  stat_compare_means(method = "wilcox.test", label.y = 1050000) +
+  geom_text(
+    data = df_counts,
+    aes(x = PromoterCluster, y = 1150000, label = paste0("n = ", n)),  # position text
+    inherit.aes = FALSE
   ) +
+  labs(x = "Promoter cluster", y = "Fredlund immune score") +
   theme_bw(base_size = 14)
 
 

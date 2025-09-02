@@ -7,8 +7,6 @@ library(ggplot2)
 library(tibble)
 library(patchwork)
 library(ggrepel)
-
-
 library(energy)
 
 
@@ -22,6 +20,16 @@ set.seed(123)
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
+# Defining gene-cpg dictionary
+genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
+  if (grepl("\\|", x)) {
+    strsplit(x, "\\|")[[1]][2]
+  } else {
+    x
+  }
+})
+
+names(genes) <- annoObj$illuminaID
 
 # Load cassettes
 prom_cassettes <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
@@ -126,7 +134,6 @@ results <- data.frame(
   }),
   
   gene = sapply(variables, function(v) {
-    
     data <- promoter_10$colors
     cpgs <- names(data)[data == v]
     paste0(unique(unname(genes[cpgs])), collapse = ",")
@@ -136,7 +143,7 @@ results <- data.frame(
 
 # Apply multiple testing correction
 results$P_adj_Bonf <- p.adjust(results$Wilcoxon_P_value, method = "bonferroni")
-results$P_adj_FDR <- p.adjust(results$Wilcoxon_P_value, method = "fdr")  # Recommended for multiple comparisons
+results$P_adj_FDR <- p.adjust(results$Wilcoxon_P_value, method = "fdr")
 
 # Convert p-values to -log10 scale
 results$logP_FDR <- -log10(results$P_adj_FDR)

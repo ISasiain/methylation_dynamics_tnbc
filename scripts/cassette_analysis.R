@@ -222,13 +222,18 @@ for (file in all_files) {
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Epitype annotations
+  # PAM50
   pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
+  pam50_annotations <- ifelse(pam50_annotations == "Uncl.", 
+                              "Uncl.", 
+                              ifelse(pam50_annotations == "Basal", 
+                                     "Basal", 
+                                     "Non-Basal"))
   
   # Create column annotation object
   column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                          col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"))
+                                           "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"))
                                          )
   
   # Generate heatmap with row annotation
@@ -240,10 +245,13 @@ for (file in all_files) {
                      row_split = cassette_factor, 
                      row_title = row_labels,  
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
-                     top_annotation = column_annotation)
+                     top_annotation = column_annotation,  
+                     clustering_distance_columns = "euclidean",
+                     clustering_method_columns = "ward.D2",,
+                     name = "Beta")
   
   # Save the heatmap to a file with double size
-  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/all_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted_from_adjusted.png"), width = 4000, height = 2800, res = 600)
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/all_cassettes/diff_betas/heatmap_beta_", beta, "_unadjusted_from_unadjusted.png"), width = 4000, height = 2800, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -255,7 +263,7 @@ for (file in all_files) {
 
 # List all files
 distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-distal_files <- distal_files[grepl("atac", distal_files)]
+distal_files <- distal_files[!grepl("atac", distal_files)]
 distal_files <- distal_files[!grepl("purity", distal_files)]
 distal_files <- distal_files[!grepl("only_atac_unadjusted", distal_files)]
 distal_files <- distal_files[!grepl("basal", distal_files)]
@@ -348,12 +356,6 @@ ggplot(cassette_df, aes(x = beta, y = proportion, fill = cassette)) +
 
 # PLOT 3. HEATMAP OF CASSETTES
 
-# Plotting first cassettes with annotatios. 
-# List all distal files
-distal_files <- list.files("/Volumes/Data/Project_3/detected_cassettes/distal/", full.names = TRUE)
-distal_files <- distal_files[!grepl("only", distal_files)]
-distal_files <- distal_files[!grepl("not_purity_adjusted", distal_files)]
-
 # Loop through each file
 for (file in distal_files) {
   # Extract the beta value from the filename
@@ -384,56 +386,62 @@ for (file in distal_files) {
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Subset row annotation matrix for selected transcription factors
-  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
-  
-  # Convert to a factor to ensure proper categorical annotation
-  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
-  
-  # Define color mapping for all TFs (0 = white, 1 = black)
-  tf_colors <- list(
-    SUZ12 = c("0" = "white", "1" = "black"),
-    EZH2  = c("0" = "white", "1" = "black"),
-    FOS   = c("0" = "white", "1" = "black"),
-    STAT3 = c("0" = "white", "1" = "black"),
-    ESR1  = c("0" = "white", "1" = "black"),
-    GATA3 = c("0" = "white", "1" = "black"),
-    FOXA1 = c("0" = "white", "1" = "black")
-  )
+  # # Subset row annotation matrix for selected transcription factors
+  # tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  # 
+  # # Convert to a factor to ensure proper categorical annotation
+  # tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  # 
+  # # Define color mapping for all TFs (0 = white, 1 = black)
+  # tf_colors <- list(
+  #   SUZ12 = c("0" = "white", "1" = "black"),
+  #   EZH2  = c("0" = "white", "1" = "black"),
+  #   FOS   = c("0" = "white", "1" = "black"),
+  #   STAT3 = c("0" = "white", "1" = "black"),
+  #   ESR1  = c("0" = "white", "1" = "black"),
+  #   GATA3 = c("0" = "white", "1" = "black"),
+  #   FOXA1 = c("0" = "white", "1" = "black")
+  # )
   
   #Define ATAC annotation
   atac_annotation <- rowAnnotation(df=data.frame("ATAC"=as.factor(annoObj$hasAtacOverlap[annoObj$illuminaID %in% selected_CpGs])),
                                    col = list(ATAC = c("0" = "white", "1" = "black")))
   
   # Create row annotation object
-  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
+  #row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
-  # Epitype annotations
+  # PAM5P annotations
   pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
-  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
-  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
-  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
-  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
-  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  pam50_annotations <- ifelse(pam50_annotations == "Uncl.", 
+                              "Uncl.", 
+                              ifelse(pam50_annotations == "Basal", 
+                                     "Basal", 
+                                     "Non-Basal"))
+  
+  # tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  # HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  # epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  # im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  # tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
   
   # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         HRD = HRD_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
-                                           "IM"=c("Negative"="grey", "Positive"="black"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
-  )
+  # column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+  #                                        TNBC = tnbc_annotation,
+  #                                        HRD = HRD_annotation,
+  #                                        Epitype = epi_annotation,
+  #                                        IM = im_annotation,
+  #                                        col = list(
+  #                                          "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+  #                                          "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+  #                                          "IM"=c("Negative"="grey", "Positive"="black"),
+  #                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+  #                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+  #                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # )
   
   column_annotation_short <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"))
+                                               col = list(
+                                                 "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"))
   )
   
   # Generate heatmap with row annotation
@@ -448,7 +456,10 @@ for (file in distal_files) {
                      top_annotation = column_annotation_short,
                      #left_annotation = row_annotation,
                      #right_annotation = atac_annotation,
-                     use_raster = FALSE)
+                     clustering_distance_columns = "euclidean",
+                     clustering_method_columns = "ward.D2",
+                     use_raster = FALSE,
+                     name = "Beta")
   
   # Save the heatmap to a file 
   png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, ".png"), , width = 4000, height = 2800, res = 600)
@@ -457,7 +468,7 @@ for (file in distal_files) {
 }
 
 
-### ANALYISNG CASSETTES IN VALIDATION COHORT
+### ANALYISNG CASSETTES IN VALIDATION COHORT. Compare with discovery
 
 # Plotting first cassettes with annotatios. 
 # List all distal files
@@ -482,59 +493,88 @@ for (file in distal_files) {
   cpg_list <- lapply(selected_cassettes, function(cassette) {
     names(distal$colors[distal$colors == cassette])
   })
-  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  names(cpg_list) <- selected_cassettes
   
   # Flatten the list to get selected CpGs
   selected_CpGs <- as.character(unlist(cpg_list))
   
-  # Use only Cpgs in validation data
-  selected_CpGs <- selected_CpGs[selected_CpGs %in% rownames(beta.adjusted)]
+  # Keep only CpGs available in both cohorts
+  selected_CpGs <- selected_CpGs[
+    selected_CpGs %in% rownames(beta.adjusted) & 
+      selected_CpGs %in% rownames(betaAdj)
+  ]
   
-  # Subset the adjusted beta values
-  beta_subset <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  # Subset both datasets
+  beta_validation <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  beta_discovery  <- betaAdj[selected_CpGs, , drop = FALSE]
   
-  # Create a cassette grouping factor
+  # Cassette factor for row splits
   cassette_factor <- factor(distal$colors[selected_CpGs], levels = selected_cassettes)
-  
-  # Compute CpG counts per cassette
-  cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  
-  # Epitype annotations
-  pam50_annotations <- annotations[colnames(beta_subset), "NCN_PAM50"]
-  tnbc_annotation <- annotations[colnames(beta_subset), "TNBCtype4"]
-  epi_annotation <- annotations[colnames(beta_subset), "NMF_ATAC_finalSubClusters"]
-  im_annotation <- annotations[colnames(beta_subset), "TNBCtype_IM"]
-
-  
-  # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "IM"=c("0"="grey", "1"="black", "UNS"="white"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # PAM50 annotations (applied to both)
+  pam50_annotations_discovery <- my_annotations[colnames(beta_discovery), "PAM50"]
+  pam50_annotations_discovery <- ifelse(
+    pam50_annotations_discovery == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_discovery == "Basal", "Basal", "Non-Basal")
   )
   
-  # Generate heatmap with row annotation
-  heatmap <- Heatmap(beta_subset, 
-                     cluster_rows = FALSE, 
-                     cluster_columns = TRUE, 
-                     show_row_names = FALSE, 
-                     show_column_names = FALSE, 
-                     row_split = cassette_factor, 
-                     row_title = row_labels,  
-                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
-                     top_annotation = column_annotation,
-                     use_raster = FALSE)
+  pam50_annotations_validation <- annotations[colnames(beta_validation), "NCN_PAM50"]
+  pam50_annotations_validation <- ifelse(
+    pam50_annotations_validation == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_validation == "Basal", "Basal", "Non-Basal")
+  )
+  
+  pam50_colors <- c("Basal"="indianred1", "Non-Basal"="darkblue", "Uncl."="grey")
+  
+  # Build heatmaps
+  
+  # Discovery heatmap
+  heatmap_discovery <- Heatmap(
+    beta_discovery,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Discovery cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_discovery,
+      col = list(PAM50 = pam50_colors),
+      show_annotation_name = FALSE
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Validation heatmap
+  heatmap_validation <- Heatmap(
+    beta_validation,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Validation cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_validation,
+      col = list(PAM50 = pam50_colors)
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Merge heatmaps
+  heatmap <- heatmap_discovery + heatmap_validation
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.png"), , width = 4000, height = 2200, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -622,53 +662,60 @@ for (file in promoter_files) {
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Subset row annotation matrix for selected transcription factors
-  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  # # Subset row annotation matrix for selected transcription factors
+  # tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  # 
+  # # Convert to a factor to ensure proper categorical annotation
+  # tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  # 
+  # # Define color mapping for all TFs (0 = white, 1 = black)
+  # tf_colors <- list(
+  #   SUZ12 = c("0" = "white", "1" = "black"),
+  #   EZH2  = c("0" = "white", "1" = "black"),
+  #   FOS   = c("0" = "white", "1" = "black"),
+  #   STAT3 = c("0" = "white", "1" = "black"),
+  #   ESR1  = c("0" = "white", "1" = "black"),
+  #   GATA3 = c("0" = "white", "1" = "black"),
+  #   FOXA1 = c("0" = "white", "1" = "black")
+  # )
+  # 
+  # # Create row annotation object
+  # row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
-  # Convert to a factor to ensure proper categorical annotation
-  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
-  
-  # Define color mapping for all TFs (0 = white, 1 = black)
-  tf_colors <- list(
-    SUZ12 = c("0" = "white", "1" = "black"),
-    EZH2  = c("0" = "white", "1" = "black"),
-    FOS   = c("0" = "white", "1" = "black"),
-    STAT3 = c("0" = "white", "1" = "black"),
-    ESR1  = c("0" = "white", "1" = "black"),
-    GATA3 = c("0" = "white", "1" = "black"),
-    FOXA1 = c("0" = "white", "1" = "black")
-  )
-  
-  # Create row annotation object
-  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
-  
-  # Epitype annotations
+  # PAM5P annotations
   pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
-  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
-  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
-  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
-  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
-  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  pam50_annotations <- ifelse(pam50_annotations == "Uncl.", 
+                              "Uncl.", 
+                              ifelse(pam50_annotations == "Basal", 
+                                     "Basal", 
+                                     "Non-Basal"))
+  
+  # tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  # HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  # epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  # im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  # tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
   
   # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         HRD = HRD_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
-                                           "IM"=c("Negative"="grey", "Positive"="black"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
-  )
+  # column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+  #                                        TNBC = tnbc_annotation,
+  #                                        HRD = HRD_annotation,
+  #                                        Epitype = epi_annotation,
+  #                                        IM = im_annotation,
+  #                                        col = list(
+  #                                          "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+  #                                          "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+  #                                          "IM"=c("Negative"="grey", "Positive"="black"),
+  #                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+  #                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+  #                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # )
   
   column_annotation_short <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"))
+                                               col = list(
+                                                 "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"))
   )
+  
   
   # Generate heatmap with row annotation
   heatmap <- Heatmap(beta_subset, 
@@ -680,8 +727,11 @@ for (file in promoter_files) {
                      row_title = row_labels,  
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
                      top_annotation = column_annotation_short,
+                     clustering_distance_columns = "euclidean",
+                     clustering_method_columns = "ward.D2",
                      #left_annotation = row_annotation,
-                     use_raster = FALSE)
+                     use_raster = FALSE,
+                     name="Beta")
 
   
   png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, ".png"), , width = 4000, height = 2800, res = 600)
@@ -713,59 +763,90 @@ for (file in promoter_files) {
   cpg_list <- lapply(selected_cassettes, function(cassette) {
     names(promoter$colors[promoter$colors == cassette])
   })
-  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  names(cpg_list) <- selected_cassettes
   
   # Flatten the list to get selected CpGs
   selected_CpGs <- as.character(unlist(cpg_list))
   
-  # Use only Cpgs in validation data
-  selected_CpGs <- selected_CpGs[selected_CpGs %in% rownames(beta.adjusted)]
+  # Keep only CpGs available in both cohorts
+  selected_CpGs <- selected_CpGs[
+    selected_CpGs %in% rownames(beta.adjusted) & 
+      selected_CpGs %in% rownames(betaAdj)
+  ]
   
-  # Subset the adjusted beta values
-  beta_subset <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  # Subset both datasets
+  beta_validation <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  beta_discovery  <- betaAdj[selected_CpGs, , drop = FALSE]
   
-  # Create a cassette grouping factor
+  # Cassette factor for row splits
   cassette_factor <- factor(promoter$colors[selected_CpGs], levels = selected_cassettes)
-  
-  # Compute CpG counts per cassette
-  cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  
-  # Epitype annotations
-  pam50_annotations <- annotations[colnames(beta_subset), "NCN_PAM50"]
-  tnbc_annotation <- annotations[colnames(beta_subset), "TNBCtype4"]
-  epi_annotation <- annotations[colnames(beta_subset), "NMF_ATAC_finalSubClusters"]
-  im_annotation <- annotations[colnames(beta_subset), "TNBCtype_IM"]
-  
-  
-  # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "IM"=c("0"="grey", "1"="black", "UNS"="white"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # PAM50 annotations (applied to both cohorts)
+  pam50_annotations_discovery <- my_annotations[colnames(beta_discovery), "PAM50"]
+  pam50_annotations_discovery <- ifelse(
+    pam50_annotations_discovery == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_discovery == "Basal", "Basal", "Non-Basal")
   )
   
-  # Generate heatmap with row annotation
-  heatmap <- Heatmap(beta_subset, 
-                     cluster_rows = FALSE, 
-                     cluster_columns = TRUE, 
-                     show_row_names = FALSE, 
-                     show_column_names = FALSE, 
-                     row_split = cassette_factor, 
-                     row_title = row_labels,  
-                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
-                     top_annotation = column_annotation,
-                     use_raster = FALSE)
+  pam50_annotations_validation <- annotations[colnames(beta_validation), "NCN_PAM50"]
+  pam50_annotations_validation <- ifelse(
+    pam50_annotations_validation == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_validation == "Basal", "Basal", "Non-Basal")
+  )
+  
+  pam50_colors <- c("Basal"="indianred1", "Non-Basal"="darkblue", "Uncl."="grey")
+  
+  # Build heatmaps
+  
+  # Discovery heatmap
+  heatmap_discovery <- Heatmap(
+    beta_discovery,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Discovery cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_discovery,
+      col = list(PAM50 = pam50_colors),
+      show_annotation_name = FALSE
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Validation heatmap
+  heatmap_validation <- Heatmap(
+    beta_validation,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Validation cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_validation,
+      col = list(PAM50 = pam50_colors),
+      show_annotation_name = FALSE
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Merge heatmaps
+  heatmap <- heatmap_discovery + heatmap_validation
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.png"),
+      width = 4000, height = 2200, res = 600)
   draw(heatmap)
   dev.off()
 }
@@ -851,52 +932,58 @@ for (file in proximal_files) {
   cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  # Subset row annotation matrix for selected transcription factors
-  tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  # # Subset row annotation matrix for selected transcription factors
+  # tf_annotation <- tfMat[selected_CpGs, c("SUZ12", "EZH2", "FOS", "STAT3", "ESR1", "GATA3", "FOXA1"), drop = FALSE]
+  # 
+  # # Convert to a factor to ensure proper categorical annotation
+  # tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
+  # 
+  # # Define color mapping for all TFs (0 = white, 1 = black)
+  # tf_colors <- list(
+  #   SUZ12 = c("0" = "white", "1" = "black"),
+  #   EZH2  = c("0" = "white", "1" = "black"),
+  #   FOS   = c("0" = "white", "1" = "black"),
+  #   STAT3 = c("0" = "white", "1" = "black"),
+  #   ESR1  = c("0" = "white", "1" = "black"),
+  #   GATA3 = c("0" = "white", "1" = "black"),
+  #   FOXA1 = c("0" = "white", "1" = "black")
+  # )
+  # 
+  # # Create row annotation object
+  # row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
   
-  # Convert to a factor to ensure proper categorical annotation
-  tf_annotation <- as.data.frame(lapply(tf_annotation, factor, levels = c(0, 1)))
-  
-  # Define color mapping for all TFs (0 = white, 1 = black)
-  tf_colors <- list(
-    SUZ12 = c("0" = "white", "1" = "black"),
-    EZH2  = c("0" = "white", "1" = "black"),
-    FOS   = c("0" = "white", "1" = "black"),
-    STAT3 = c("0" = "white", "1" = "black"),
-    ESR1  = c("0" = "white", "1" = "black"),
-    GATA3 = c("0" = "white", "1" = "black"),
-    FOXA1 = c("0" = "white", "1" = "black")
-  )
-  
-  # Create row annotation object
-  row_annotation <- rowAnnotation(df = tf_annotation, col = tf_colors, annotation_name_side = "top")
-  
-  # Epitype annotations
+  # PAM5P annotations
   pam50_annotations <- my_annotations[colnames(beta_subset), "PAM50"]
-  tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
-  HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
-  epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
-  im_annotation <- my_annotations[colnames(beta_subset), "IM"]
-  tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
+  pam50_annotations <- ifelse(pam50_annotations == "Uncl.", 
+                              "Uncl.", 
+                              ifelse(pam50_annotations == "Basal", 
+                                     "Basal", 
+                                     "Non-Basal"))
+  
+  # tnbc_annotation <- my_annotations[colnames(beta_subset), "TNBC"]
+  # HRD_annotation <- my_annotations[colnames(beta_subset), "HRD"]
+  # epi_annotation <- my_annotations[colnames(beta_subset), "NMF_atacDistal"]
+  # im_annotation <- my_annotations[colnames(beta_subset), "IM"]
+  # tils_annotation <- as.numeric(x[colnames(beta_subset), "TILs"])
   
   # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         HRD = HRD_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
-                                           "IM"=c("Negative"="grey", "Positive"="black"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
-  )
+  # column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
+  #                                        TNBC = tnbc_annotation,
+  #                                        HRD = HRD_annotation,
+  #                                        Epitype = epi_annotation,
+  #                                        IM = im_annotation,
+  #                                        col = list(
+  #                                          "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
+  #                                          "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+  #                                          "IM"=c("Negative"="grey", "Positive"="black"),
+  #                                          "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
+  #                                          "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
+  #                                                      "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # )
   
   column_annotation_short <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"))
+                                               col = list(
+                                                 "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"))
   )
   
   # Generate heatmap with row annotation
@@ -910,7 +997,10 @@ for (file in proximal_files) {
                      column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
                      top_annotation = column_annotation_short,
                      #left_annotation = row_annotation,
-                     use_raster = FALSE)
+                     clustering_distance_columns = "euclidean",
+                     clustering_method_columns = "ward.D2",
+                     use_raster = FALSE,
+                     name = "Beta")
   
   # Save the heatmap to a file
   png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/heatmap_beta_", beta, ".png") , width = 4000, height = 2800, res = 600)
@@ -941,68 +1031,99 @@ for (file in proximal_files) {
   
   # Extract CpGs belonging to each cassette
   cpg_list <- lapply(selected_cassettes, function(cassette) {
-    names(promoter$colors[proximal$colors == cassette])
+    names(proximal$colors[proximal$colors == cassette])
   })
-  names(cpg_list) <- selected_cassettes  # Assign cassette names
+  names(cpg_list) <- selected_cassettes
   
   # Flatten the list to get selected CpGs
   selected_CpGs <- as.character(unlist(cpg_list))
   
-  # Use only Cpgs in validation data
-  selected_CpGs <- selected_CpGs[selected_CpGs %in% rownames(beta.adjusted)]
+  # Keep only CpGs available in both cohorts
+  selected_CpGs <- selected_CpGs[
+    selected_CpGs %in% rownames(beta.adjusted) & 
+      selected_CpGs %in% rownames(betaAdj)
+  ]
   
-  # Subset the adjusted beta values
-  beta_subset <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  # Subset both datasets
+  beta_validation <- beta.adjusted[selected_CpGs, , drop = FALSE]
+  beta_discovery  <- betaAdj[selected_CpGs, , drop = FALSE]
   
-  # Create a cassette grouping factor
+  # Cassette factor for row splits
   cassette_factor <- factor(proximal$colors[selected_CpGs], levels = selected_cassettes)
-  
-  # Compute CpG counts per cassette
-  cassette_counts <- sapply(cpg_list, length)
   row_labels <- paste0(selected_cassettes)
   
-  
-  # Epitype annotations
-  pam50_annotations <- annotations[colnames(beta_subset), "NCN_PAM50"]
-  tnbc_annotation <- annotations[colnames(beta_subset), "TNBCtype4"]
-  epi_annotation <- annotations[colnames(beta_subset), "NMF_ATAC_finalSubClusters"]
-  im_annotation <- annotations[colnames(beta_subset), "TNBCtype_IM"]
-  
-  
-  # Create column annotation object
-  column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                         TNBC = tnbc_annotation,
-                                         Epitype = epi_annotation,
-                                         IM = im_annotation,
-                                         col = list(
-                                           "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                           "IM"=c("0"="grey", "1"="black", "UNS"="white"),
-                                           "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey", "UNS"="white"),
-                                           "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                       "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue"))
+  # PAM50 annotations (applied to both cohorts)
+  pam50_annotations_discovery <- my_annotations[colnames(beta_discovery), "PAM50"]
+  pam50_annotations_discovery <- ifelse(
+    pam50_annotations_discovery == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_discovery == "Basal", "Basal", "Non-Basal")
   )
   
-  # Generate heatmap with row annotation
-  heatmap <- Heatmap(beta_subset, 
-                     cluster_rows = FALSE, 
-                     cluster_columns = TRUE, 
-                     show_row_names = FALSE, 
-                     show_column_names = FALSE, 
-                     row_split = cassette_factor, 
-                     row_title = row_labels,  
-                     column_title = paste("CpG Methylation Heatmap by Cassettes (Beta =", beta, ")"),
-                     top_annotation = column_annotation,
-                     use_raster = FALSE)
+  pam50_annotations_validation <- annotations[colnames(beta_validation), "NCN_PAM50"]
+  pam50_annotations_validation <- ifelse(
+    pam50_annotations_validation == "Uncl.", "Uncl.",
+    ifelse(pam50_annotations_validation == "Basal", "Basal", "Non-Basal")
+  )
+  
+  pam50_colors <- c("Basal"="indianred1", "Non-Basal"="darkblue", "Uncl."="grey")
+  
+  # Build heatmaps
+  
+  # Discovery heatmap
+  heatmap_discovery <- Heatmap(
+    beta_discovery,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Discovery cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_discovery,
+      col = list(PAM50 = pam50_colors),
+      show_annotation_name = FALSE
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Validation heatmap
+  heatmap_validation <- Heatmap(
+    beta_validation,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    row_split = cassette_factor,
+    row_title = row_labels,
+    column_title = "Validation cohort",
+    top_annotation = HeatmapAnnotation(
+      PAM50 = pam50_annotations_validation,
+      col = list(PAM50 = pam50_colors),
+      show_annotation_name = FALSE
+    ),
+    clustering_distance_columns = "euclidean",
+    clustering_method_columns = "ward.D2",
+    use_raster = FALSE,
+    name = "Beta"
+  )
+  
+  # Merge heatmaps
+  heatmap <- heatmap_discovery + heatmap_validation
   
   # Save the heatmap to a file with double size
-  pdf(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.pdf"), width = 14, height = 10)  # Adjust width and height as needed
+  png(paste0("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/diff_betas/heatmap_beta_", beta, "_VALIDATION.png"),
+      width = 4000, height = 2200, res = 600)
   draw(heatmap)
   dev.off()
 }
 
 
 #
-# SUMMARIZING CASSE <- TTES
+# SUMMARIZING CASSETTES
 #
 
 # Distal cassettes

@@ -10,11 +10,11 @@ library(dplyr)
 # LOADING DATA
 #
 
-all_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
-basal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_10.rds")
-nonBasal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_10.rds")
+all_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")
+basal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_basal_cassettes_beta_5.rds")
+nonBasal_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/only_nonBasal_cassettes_beta_5.rds")
 
-atac_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10_only_atac.rds")
+atac_distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5_only_atac.rds")
 
 #
 # COMPARING CASSETTE ASSIGNMENTS
@@ -379,7 +379,7 @@ for (plot in cassettes) {
   
   # Count frequencies
   color_freq <- table(colors)
-  threshold <- 0.02 * length(colors)
+  threshold <- 0.04 * length(colors)
   
   # Replace infrequent categories with "Other"
   colors_grouped <- ifelse(color_freq[colors] < threshold, "Other", colors)
@@ -468,7 +468,7 @@ for (plot in cassettes) {
   
   # Count frequencies
   color_freq <- table(colors)
-  threshold <- 0.02 * length(colors)
+  threshold <- 0.04 * length(colors)
   
   # Replace infrequent categories with "Other"
   colors_grouped <- ifelse(color_freq[colors] < threshold, "Other", colors)

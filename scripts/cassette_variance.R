@@ -22,7 +22,7 @@ rownames(x) <- x$PD_ID
 #
 
 # Example cassette file
-promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_5.rds")
 
 # COMPUTE VARIANCE
 
@@ -545,7 +545,7 @@ ggplot(df_combined, aes(x = factor(Top_CPG_Set, levels = top_cpg_order),
 #
 
 # Total beta variance
-variance_of_betas <- apply(betaNew, MARGIN = 1, FUN=var)
+variance_of_betas <- apply(beta, MARGIN = 1, FUN=var)
 
 # Cassettes labels
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_5.rds")$colors
@@ -650,19 +650,21 @@ cassette_colors <- c(
   "distal_6" = "#fc8d59",
   
   # Proximal (blues)
+  "proximal_0" = "#084599",
   "proximal_1" = "#c6dbef",
   "proximal_2" = "#9ecae1",
   "proximal_3" = "#6baed6",
   "proximal_4" = "#4292c6",
   "proximal_5" = "#2171b5",
-  "proximal_6" = "#084594",
+  "proximal_6" = "#084591",
   
   # Promoter (greens)
+  "promoter_1" = "#005a39",
   "promoter_1" = "#a1d99b",
   "promoter_2" = "#74c476",
   "promoter_3" = "#41ab5d",
   "promoter_4" = "#238b45",
-  "promoter_5" = "#005a32",
+  "promoter_5" = "#005a31",
   
   # Other
   "Others" = "grey"

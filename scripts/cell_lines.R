@@ -120,4 +120,5 @@ cor_matrix <- cor(t(expr_mat), method = "spearman")
 
 # Plot the correlation matrix
 corrplot(cor_matrix, method = "color", type = "upper", 
-         tl.col = "black", tl.srt = 45)
+         tl.col = "black", tl.srt = 45, 
+         addCoef.col = "black", number.cex = 0.7)

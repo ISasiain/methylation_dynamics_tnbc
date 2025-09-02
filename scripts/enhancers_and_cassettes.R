@@ -10,10 +10,9 @@ library(gprofiler2)
 library(ggrepel)
 
 
-#Loading gprofiler2#Loading data
 
 # Load data
-dist_cassette_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
+dist_cassette_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_5.rds")
 
 # Loading EPIC methylation matrix
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
@@ -77,7 +76,7 @@ matches_to_enhancers_1 <- sapply(cpgs_1, function(cpg) {
   paste0(filtered_enhancer_data$GHid[is_inside], collapse = "_")
 })
 
-sum(matches_to_enhancers_1 != "") / length(matches_to_enhancers_2)
+sum(matches_to_enhancers_1 != "") / length(matches_to_enhancers_1)
 
 
 # DISTAL 2

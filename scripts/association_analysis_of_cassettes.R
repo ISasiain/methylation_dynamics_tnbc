@@ -12,7 +12,7 @@ library(reshape2)
 #
 # LOADING DATA 
 #
-
+s
 # Loading EPIC methylation matrix
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
@@ -54,98 +54,6 @@ promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cass
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
 distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 
-#
-# PLOTTING BRCA1 CASSETTE
-#
-
-data <- promoter_10$colors
-cpgs <- names(data)[data == 11]
-genes[cpgs]
-
-pam50_annotations <- my_annotations[colnames(betaAdj), "PAM50"]
-tnbc_annotation <- my_annotations[colnames(betaAdj), "TNBC"]
-HRD_annotation <- my_annotations[colnames(betaAdj), "HRD"]
-epi_annotation <- my_annotations[colnames(betaAdj), "NMF_atacDistal"]
-im_annotation <- my_annotations[colnames(betaAdj), "IM"]
-tils_annotation <- as.numeric(x[colnames(betaAdj), "TILs"])
-
-my_fpkm_data <- as.numeric(fpkm_data["BRCA1", colnames(betaAdj)])
-
-# Create top anotation
-top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
-                                    TNBC = tnbc_annotation,
-                                    HRD = HRD_annotation,
-                                    IM = im_annotation,
-                                    Epitype = epi_annotation,
-                                    TILs = anno_points(tils_annotation,
-                                                       ylim=c(0,100),
-                                                       size=unit(0.75, "mm"),
-                                                       axis_param = list(
-                                                         side="left",
-                                                         at=c(0,25,50,75,100),
-                                                         labels=c("0","25","50","75","100")
-                                                       )),
-                                    col = list(
-                                      "PAM50"=c("Basal"="indianred1", "Her2"="pink", "LumA"="darkblue", "LumB"="lightblue", "Normal"="darkgreen", "Uncl."="grey"),
-                                      "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
-                                      "IM"=c("Negative"="grey", "Positive"="black"),
-                                      "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
-                                      "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
-                                                  "nonBasal1" = "cadetblue1", "nonBasal2" = "dodgerblue")
-                                    )
-)
-
-
-# Updated left_annotation with color scale
-right_annotation <- rowAnnotation(
-  "Normal beta" = rowMeans(betaNorm[cpgs,]),
-  "ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% cpgs],
-  col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")),
-             "ATAC" = c("0" = "white", "1"= "black"))
-)
-
-# CpG context annotation
-left_annotation <- rowAnnotation("Context"= annoObj$featureClass[annoObj$illuminaID %in% cpgs]
-)
-
-# Expression annotation
-bottom_annotation <- HeatmapAnnotation(
-  "FPKM" = anno_barplot(my_fpkm_data)
-)
-
-# Cluster based on methylation
-cluster_promoter <- kmeans(t(betaAdj[cpgs,]), centers = 2)
-
-# Determine hypo and hypermethylated cluster
-promoter_state <- if (mean(betaAdj[cpgs,cluster_promoter$cluster==1]) >
-                      mean(betaAdj[cpgs,cluster_promoter$cluster==2])) {
-  
-  as.factor(ifelse(cluster_promoter$cluster == 1, "Hypermethylated", "Hypomethylated"))
-  
-} else {
-  
-  as.factor(ifelse(cluster_promoter$cluster == 2, "Hypermethylated", "Hypomethylated"))
-  
-}
-
-
-# Heatmap of genes
-Heatmap(
-  betaAdj[cpgs,],
-  cluster_rows = FALSE,
-  row_order = order(annoObj$start[annoObj$illuminaID %in% cpgs]),
-  cluster_columns = TRUE,
-  show_row_names = FALSE,
-  show_column_names = FALSE,
-  show_row_dend = FALSE,
-  column_split = promoter_state,
-  top_annotation = top_annotation,
-  right_annotation = right_annotation,
-  bottom_annotation = bottom_annotation,
-  clustering_distance_columns = "euclidean",
-  clustering_method_columns = "ward.D2",
-  name = "Tumor beta"
-)
 
 
 #

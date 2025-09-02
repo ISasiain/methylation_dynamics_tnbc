@@ -20,9 +20,6 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
-# Loading gene expression
-fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
-
 #
 # Preprocessing
 #
@@ -31,6 +28,8 @@ fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_a
 
 # Getting proximal CpGs
 proximal_cpgs <- annoObj$illuminaID[which( (annoObj$hasAtacOverlap & (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
+
+proximal_cpgs <- annoObj$illuminaID[which((annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) ]
 proximal_betas <- betaAdj[rownames(betaAdj) %in% proximal_cpgs, ]
 
 
@@ -53,43 +52,43 @@ prox_to_analyse <- t(proximal_betas[variance_prox > selected_var,])
 # Running WGCNA
 #
 
-# # Running WGCNA
-# # Choose a set of soft-thresholding powers
-# powers = c(c(1:10), seq(from = 12, to = 30, by = 2))
-# 
-# # Call the network topology analysis function
-# sft = pickSoftThreshold(
-#   prox_to_analyse,             # <= Input data
-#   powerVector = powers,
-#   verbose = 5
-# )
-# 
-# # Plotting
-# par(mfrow = c(1,2))
-# cex1 = 0.9
-# 
-# plot(sft$fitIndices[, 1],
-#      -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
-#      xlab = "Soft Threshold (power)",
-#      ylab = "Scale Free Topology Model Fit, signed R^2",
-#      main = paste("Scale independence")
-# )
-# text(sft$fitIndices[, 1],
-#      -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
-#      labels = powers, cex = cex1, col = "red"
-# )
-# abline(h = 0.90, col = "red")
-# plot(sft$fitIndices[, 1],
-#      sft$fitIndices[, 5],
-#      xlab = "Soft Threshold (power)",
-#      ylab = "Mean Connectivity",
-#      type = "n",
-#      main = paste("Mean connectivity")
-# )
-# text(sft$fitIndices[, 1],
-#      sft$fitIndices[, 5],
-#      labels = powers,
-#      cex = cex1, col = "red")
+# Running WGCNA
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to = 30, by = 2))
+
+# Call the network topology analysis function
+sft = pickSoftThreshold(
+  prox_to_analyse,             # <= Input data
+  powerVector = powers,
+  verbose = 5
+)
+
+# Plotting
+par(mfrow = c(1,2))
+cex1 = 0.9
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2",
+     main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, cex = cex1, col = "red"
+)
+abline(h = 0.90, col = "red")
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
+     main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1, col = "red")
 
 
 # Running WGCNA

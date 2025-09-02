@@ -22,10 +22,12 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 # CpG context
 
 # Getting distal CpGs
-distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
-                           (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
+# distal_cpgs <- annoObj$illuminaID[which((annoObj$hasAtacOverlap == 1) & 
+#                            (annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
 
-distal_betas <- betaNew[rownames(betaNew) %in% distal_cpgs, ]
+distal_cpgs <- annoObj$illuminaID[which((annoObj$featureClass == "distal" | annoObj$featureClass == "distal body"))]
+
+distal_betas <- betaAdj[rownames(betaAdj) %in% distal_cpgs, ]
 
 # Filtering based on variance
 
@@ -37,53 +39,51 @@ plot(density(variance_dis))
 abline(v=0.1)
 
 # Filtering data
-selected_var <- sort(variance_dis, decreasing = T)[7870] # Using this to find an equivalent variance to the selected one in non-adjsuted betas
-#selected_var <- 0.1
+#selected_var <- sort(variance_dis, decreasing = T)[7870] # Using this to find an equivalent variance to the selected one in non-adjsuted betas
+selected_var <- 0.1
 dis_to_analyse <- t(distal_betas[variance_dis > selected_var,])
-
-
 
 
 #
 # Running WGCNA
 #
 
-# # Choose a set of soft-thresholding powers
-# powers = c(c(1:10), seq(from = 12, to = 30, by = 2))
-# 
-# # Call the network topology analysis function
-# sft = pickSoftThreshold(
-#   dis_to_analyse,             # <= Input data
-#   powerVector = powers,
-#   verbose = 5
-# )
-# 
-# # Plotting
-# par(mfrow = c(1,2))
-# cex1 = 0.9
-# 
-# plot(sft$fitIndices[, 1],
-#      -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
-#      xlab = "Soft Threshold (power)",
-#      ylab = "Scale Free Topology Model Fit, signed R^2",
-#      main = paste("Scale independence")
-# )
-# text(sft$fitIndices[, 1],
-#      -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
-#      labels = powers, cex = cex1, col = "red"
-# )
-# abline(h = 0.90, col = "red")
-# plot(sft$fitIndices[, 1],
-#      sft$fitIndices[, 5],
-#      xlab = "Soft Threshold (power)",
-#      ylab = "Mean Connectivity",
-#      type = "n",
-#      main = paste("Mean connectivity")
-# )
-# text(sft$fitIndices[, 1],
-#      sft$fitIndices[, 5],
-#      labels = powers,
-#      cex = cex1, col = "red")
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to = 30, by = 2))
+
+# Call the network topology analysis function
+sft = pickSoftThreshold(
+  dis_to_analyse,             # <= Input data
+  powerVector = powers,
+  verbose = 5
+)
+
+# Plotting
+par(mfrow = c(1,2))
+cex1 = 0.9
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2",
+     main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, cex = cex1, col = "red"
+)
+abline(h = 0.90, col = "red")
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
+     main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1, col = "red")
 
 
 # Running WGCNA
