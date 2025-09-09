@@ -44,7 +44,7 @@ sign_cpgs <- names(na.omit(bonferroni_p_vals)[na.omit(bonferroni_p_vals) <= 0.05
 dis_sign_cpgs <- sign_cpgs[annoObj[sign_cpgs,"CpG_context"] == "Distal"]
 
 # Function to group small assettes into "Others"
-collapse_counts <- function(tbl, min_size = 10) {
+collapse_counts <- function(tbl, min_size) {
   df <- as.data.frame(tbl)
   colnames(df) <- c("Cassette", "Count")
   df$Cassette <- as.character(df$Cassette)
@@ -60,7 +60,7 @@ collapse_counts <- function(tbl, min_size = 10) {
 
 # Getting distal cassettes
 dist_tbl <- table(distal_10$colors[dis_sign_cpgs])
-dist_df  <- collapse_counts(dist_tbl, min_size = sum(dist_tbl) / 10) %>%
+dist_df  <- collapse_counts(dist_tbl, min_size = sum(dist_tbl) / 20) %>%
   mutate(Context = "Distal")
 
 dist_df$Cassette <- factor(dist_df$Cassette, 

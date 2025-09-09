@@ -12,7 +12,7 @@ library(reshape2)
 #
 # LOADING DATA 
 #
-s
+
 # Loading EPIC methylation matrix
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
