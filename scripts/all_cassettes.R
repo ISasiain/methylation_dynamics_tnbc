@@ -29,11 +29,11 @@ variance_betas_adj <- sapply(1:nrow(betaAdj), FUN = function(row) {var(betaAdj[r
 # Filtering data
 
 
-# Selecting variance thershold in unadjusted to keep the same number of CpG s analysed
-selected_var <- variance_betas_unadj[order(variance_betas_unadj, decreasing = TRUE)][sum(variance_betas_adj > 0.1)]
+# # Selecting variance thershold in unadjusted to keep the same number of CpG s analysed
+# selected_var <- variance_betas_unadj[order(variance_betas_unadj, decreasing = TRUE)][sum(variance_betas_adj > 0.1)]
 
-#selected_var <- 0.1
-cpgs_to_analyse <- t(betaNew[variance_betas_adj > selected_var,])
+selected_var <- 0.1
+cpgs_to_analyse <- t(betaAdj[variance_betas_adj > selected_var,])
 
 dim(cpgs_to_analyse)
 
@@ -116,6 +116,6 @@ for (beta in betas) {
   
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/all/cassettes_beta_", beta, "unadjusted.rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/all/cassettes_beta_", beta, ".rds" )
   saveRDS(netwk, file = my_filename)
 }

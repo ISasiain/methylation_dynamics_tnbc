@@ -8,7 +8,6 @@ if (!requireNamespace("WGCNA", quietly = TRUE)) {
 
 library(WGCNA)
 
-
 #
 # Loading the data
 #
@@ -23,9 +22,13 @@ load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSam
 # CpG context
 
 # Getting CpGs belonging to promoter region
-promoter_cpgs <- annoObj$illuminaID[which(annoObj$hasAtacOverlap & annoObj$featureClass=="promoter")]
 
+# All
 promoter_cpgs <- annoObj$illuminaID[which(annoObj$featureClass=="promoter")]
+
+# # Only ATAC
+# promoter_cpgs <- annoObj$illuminaID[which(annoObj$hasAtacOverlap & annoObj$featureClass=="promoter")]
+
 promoter_betas <- betaAdj[rownames(betaNew) %in% promoter_cpgs, ]
 
 # Filtering based on variance
@@ -38,7 +41,7 @@ plot(density(variance_prom))
 abline(v=0.05)
 
 # Filtering data
-#selected_var <- sort(variance_prom, decreasing = T)[17725] # Using this to find an equivalent variance to the selected one in adjsuted betas
+#selected_var <- sort(variance_prom, decreasing = T)[17725] # Using this to find an equivalent variance to the selected one in adjusted betas
 selected_var <- 0.05
 prom_to_analyse <- t(promoter_betas[variance_prom > selected_var,])
 
@@ -121,7 +124,7 @@ for (beta in betas) {
                             verbose = 3)
   
   # Saving network
-  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_", beta, "_only_atac.rds" )
+  my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_", beta, ".rds" )
   saveRDS(netwk, file = my_filename)
   
 }
