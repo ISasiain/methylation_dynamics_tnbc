@@ -7,7 +7,9 @@ library(clusterProfiler)
 library(org.Hs.eg.db)
 library(patchwork)
 library(dplyr)
+library(tidyverse)
 library(grid)
+library(UpSetR)
 
 #
 # LOADING DATA
@@ -623,39 +625,31 @@ wrap_plots(heatmap_grobs, ncol = 4)
 
 
 # Plotting co-ocurrence of hypomethylation
-gene_sets <- all_data_long_df %>%
-  filter(Cluster == "Hyper.") %>%
-  group_by(Gene) %>%
-  summarize(Samples = list(Sample)) %>%
-  deframe()  # produces a named list: Gene -> vector of Samples
 
-venn.plot <- venn.diagram(
-  x = gene_sets,
-  filename = NULL,          # NULL to plot directly in R
-  fill = c("steelblue", "indianred1", "gold", "forestgreen"),
-  alpha = 0.5,
-  cex = 1.5,
-  cat.cex = 1.2,
-  margin = 0.1
+hyper_matrix <- all_data_long_df %>%
+  mutate(Hypo = ifelse(Cluster == "Hyper.", 1, 0)) %>%
+  select(Sample, Gene, Hypo) %>%
+  pivot_wider(names_from = Gene, values_from = Hypo, values_fill = 0)
+
+# Remove Sample column for UpSet
+matrix_upset <- hyper_matrix %>% select(-Sample)
+
+c_matrix <- make_comb_mat(matrix_upset)
+
+# Plot UpSet
+comb_sets = lapply(comb_name(c_matrix), function(nm) extract_comb(c_matrix, nm))
+
+bottom_annotation = HeatmapAnnotation(
+  TILs = anno_boxplot(
+    lapply(seq_along(comb_sets), function(i) {
+      my_samples <- hyper_matrix$Sample[comb_sets[[i]]]
+      tcga$sampleAnno[my_samples, "TILs"]
+    }),
+    outline = FALSE
+  ),
+  annotation_name_side = "left"
 )
 
-grid.draw(venn.plot)
+UpSet(c_matrix,
+      bottom_annotation=bottom_annotation)
 
-
-gene_sets <- all_data_long_df %>%
-  filter(Cluster == "Hypo.") %>%
-  group_by(Gene) %>%
-  summarize(Samples = list(Sample)) %>%
-  deframe()  # produces a named list: Gene -> vector of Samples
-
-venn.plot <- venn.diagram(
-  x = gene_sets,
-  filename = NULL,          # NULL to plot directly in R
-  fill = c("steelblue", "indianred1", "gold", "forestgreen"),
-  alpha = 0.5,
-  cex = 1.5,
-  cat.cex = 1.2,
-  margin = 0.1
-)
-
-grid.draw(venn.plot)
