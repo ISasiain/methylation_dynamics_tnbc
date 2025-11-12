@@ -636,7 +636,7 @@ matrix_upset <- hyper_matrix %>% select(-Sample)
 
 c_matrix <- make_comb_mat(matrix_upset)
 
-# Plot UpSet
+# Plot UpSet plot
 comb_sets = lapply(comb_name(c_matrix), function(nm) extract_comb(c_matrix, nm))
 
 bottom_annotation = HeatmapAnnotation(
