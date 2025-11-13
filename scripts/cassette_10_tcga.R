@@ -625,7 +625,6 @@ wrap_plots(heatmap_grobs, ncol = 4)
 
 
 # Plotting co-ocurrence of hypomethylation
-
 hyper_matrix <- all_data_long_df %>%
   mutate(Hypo = ifelse(Cluster == "Hyper.", 1, 0)) %>%
   select(Sample, Gene, Hypo) %>%
@@ -639,7 +638,72 @@ c_matrix <- make_comb_mat(matrix_upset)
 # Plot UpSet plot
 comb_sets = lapply(comb_name(c_matrix), function(nm) extract_comb(c_matrix, nm))
 
+cols_for_plot <- setNames(c("indianred1",
+           "#C295AF", "#C295AF", "#C295AF","#C295AF",
+           "black","black","black","black","black", "black",
+           "#A0A8D1", "#A0A8D1", "#A0A8D1", "#A0A8D1",
+           "steelblue"),
+         comb_name(c_matrix))
+
+
+# Observed frequencies from your UpSet combination matrix
+observed <- comb_size(c_matrix)
+
+# Expected frequencies assuming independence
+gene_freq <- colMeans(matrix_upset)  # P(Hypo) for each gene
+
+# Expected number of samples per combination (in same order as comb_name(c_matrix))
+expected <- sapply(strsplit(comb_name(c_matrix), ""), function(bits) {
+  probs <- ifelse(bits == "1", gene_freq, 1 - gene_freq)
+  prod(probs) * nrow(matrix_upset)
+})
+
+# Avoid divisions by zero
+expected[expected == 0] <- 1e-10
+
+# Compute log2 enrichment ratio
+log2_enrichment <- log2(observed / expected)
+
+# Compute binomial p-values for each combination
+pvals <- mapply(function(obs, exp) {
+  binom.test(x = obs, n = nrow(matrix_upset), p = exp / nrow(matrix_upset), alternative = "two.sided")$p.value
+}, observed, expected)
+
+# Adjust for multiple testing
+padj <- p.adjust(pvals, method = "BH")
+
+# Combine results
+enrichment_df <- data.frame(
+  combination = comb_name(c_matrix),
+  observed = observed,
+  expected = round(expected, 2),
+  log2_enrichment = round(log2_enrichment, 2),
+  pval = signif(pvals, 3),
+  padj = signif(padj, 3)
+)
+
+# Add labels for significance
+enrichment_df$category <- ifelse(padj < 0.05 & log2_enrichment > 0, "enriched",
+                                 ifelse(padj < 0.05 & log2_enrichment < 0, "depleted", "ns"))
+
+# Order by enrichment
+enrichment_df <- enrichment_df[order(-enrichment_df$log2_enrichment), ]
+enrichment_df$stars <- cut(
+  enrichment_df$padj,
+  breaks = c(-Inf, 0.0001, 0.001, 0.01, 0.05, Inf),
+  labels = c("****", "***", "**", "*", "")
+)
+
+# Match stars to the combination order in c_matrix
+stars_ordered <- enrichment_df$stars[match(comb_name(c_matrix), enrichment_df$combination)]
+
 bottom_annotation = HeatmapAnnotation(
+  signif = anno_text(
+    stars_ordered,
+    gp = gpar(col = ifelse(enrichment_df$category[match(comb_name(c_matrix), enrichment_df$combination)] == "enriched",
+                           "black", "darkgrey"), fontsize = 14),
+    location = 0.5
+  ),
   TILs = anno_boxplot(
     lapply(seq_along(comb_sets), function(i) {
       my_samples <- hyper_matrix$Sample[comb_sets[[i]]]
@@ -651,5 +715,7 @@ bottom_annotation = HeatmapAnnotation(
 )
 
 UpSet(c_matrix,
-      bottom_annotation=bottom_annotation)
+      bottom_annotation=bottom_annotation,
+      comb_col = cols_for_plot
+)
 
