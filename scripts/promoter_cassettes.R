@@ -97,7 +97,7 @@ for (beta in betas) {
   # Calculating CpG casettes based on WGCNA
   
   netwk <- blockwiseModules(prom_to_analyse,               
-                            corrType="spearman", # Using biweight midcorrelation 
+                            corrType="bicor", # Using biweight midcorrelation 
                             nThreads = 10,
                             
                             # == Adjacency Function ==
