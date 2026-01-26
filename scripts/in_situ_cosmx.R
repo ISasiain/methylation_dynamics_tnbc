@@ -11,7 +11,7 @@ library(patchwork)
 #
 
 # CosMs data
-oas2_per_cell_12 <-  read.csv("/Users/isasiain/PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
+oas2_per_cell_12 <-  read.csv("/Users/in2245sa/PhD/Projects/project_3/data/block12_OAS2_in_tumour.csv")
 
 # Pdid to cores mapping
 core_to_pdid <- read.table("/Volumes/Data/CosMx/mapping.txt", sep = "\t", header = T)
@@ -33,8 +33,12 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 names(genes) <- annoObj$illuminaID
 
 # Load annotation file
-load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
+
+# Loading promoter cassettes
+promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+promoter_cassette_10 <- names(promoter_10$colors)[promoter_10$colors == 10]
 
 #
 # PLOT MEAN EXPRESSION OF ALL GENES (OAS2 + CONTROLS)
@@ -45,7 +49,7 @@ my_genes <- c("OAS2_Count", "BRCA1_Count", "SMO_Count", "GSTP1_Count" , "AR_Coun
 
 # Reshape to long format
 df_long <- oas2_per_cell_12 %>%
-  filter(GMM_Label == "Tumor") %>%
+  filter(GMM_Label == "Tumour") %>%
   pivot_longer(cols = all_of(my_genes), names_to = "Gene", values_to = "Expression")
 
 # Calculate mean expression per gene
@@ -86,6 +90,9 @@ promoter_state <- if (mean(betaAdj[names(cpgs),cluster_promoter$cluster==1]) >
   
 }
 
+# Getting mean beta of CpGs linked to OAS2 in promoter cassette 10
+mean_cassette10_beta_oas2 <- colMeans(betaAdj[names(cpgs)[names(cpgs) %in% promoter_cassette_10],])
+
 
 #
 # FILTERING AND SUMMARIZING TUMOR CELLS
@@ -118,7 +125,7 @@ oas2_per_cell_12$"Methylation" <- sapply(
 
 # SUMMARIZING
 
-# Summarizing per Core (Tissue ID)
+# Summarizing per PDid
 summary_per_tissue_12 <- oas2_per_cell_12 %>%
   group_by(PDid) %>%
   summarise(
@@ -141,6 +148,8 @@ summary_per_tissue_12 <- oas2_per_cell_12 %>%
     #prop_AR = mean(AR_Count > 0, na.rm = TRUE)
   )
 
+# Adding mean oas2 beta 
+summary_per_tissue_12$mean_OAS2_beta <- mean_cassette10_beta_oas2[summary_per_tissue_12$PDid]
 
 #
 # ADDING COHORT COMPOSITION INFORMATION
@@ -186,7 +195,7 @@ label_df <- data.frame(
 ex_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=mean_OAS2)) +
   geom_violin(fill="black") +
   geom_boxplot(width=0.1, size=0.2) +
-  theme_bw(base_size = 14) +
+  theme_bw(base_size = 12) +
   xlab(NULL) +
   ylim(0,1.52) +
   ylab("Mean OAS2 expression in tumor cells") + 
@@ -201,7 +210,7 @@ ex_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Met
 prop_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$Methylation)), aes(x=Methylation, y=prop_OAS2 * 100)) +
   geom_violin(fill="black") +
   geom_boxplot(width=0.1, size=0.2) +
-  theme_bw(base_size = 14) +
+  theme_bw(base_size = 12) +
   xlab(NULL) +
   ylim(0,38) +
   ylab("% of tumor cells expressing OAS2") + 
@@ -214,6 +223,47 @@ prop_plot <- ggplot(filter(summary_per_tissue_12, !is.na(summary_per_tissue_12$M
 
 ex_plot | prop_plot
 
+
+# Plotting mean beta vs mean expression
+scatter_plot <- ggplot(
+  data = na.omit(summary_per_tissue_12),
+  aes(
+    x = mean_OAS2_beta,
+    y = mean_OAS2,
+    color = Methylation
+  )
+) +
+  geom_point(size = 2) +
+  xlab("Mean Beta of OAS2 CpGs in cassette") +
+  ylab("Mean OAS2 expression in tumor cells") +
+  xlim(0, 1) +
+  scale_color_manual(
+    values = c(
+      "Hypomethylated" = "#5F4B8B",
+      "Hypermethylated"= "#C9A441"
+    )
+  ) +
+  annotate(
+    "text",
+    x = 0.55, y = 1.1,
+    label = paste0(
+      "Spearman cor. = ",
+      round(
+        cor(
+          summary_per_tissue_12$mean_OAS2,
+          summary_per_tissue_12$mean_OAS2_beta,
+          use = "pairwise.complete.obs",
+          method = "spearman"
+        ),
+        2
+      )
+    ),
+    size = 5
+  ) +
+  theme_bw(base_size = 12)+
+  theme(legend.position = "bottom")
+
+scatter_plot | (ex_plot / prop_plot )
 
 ##geom_violin()### CONTROL. Plotting AR vs Basal/NonBasal
 
@@ -267,7 +317,7 @@ text(x = 1.3,
 #
 
 write.csv(oas2_per_cell_12[c("Tissue_ID", "GMM_Label", "Mean.PanCK", "OAS2_Count", "batch", "PDid", "Methylation")],
-          "/Users/isasiain/PhD/Projects/project_3/data/supp_data/cosmx_supp_data.csv")
+          "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/cosmx_supp_data.csv")
 
 
 

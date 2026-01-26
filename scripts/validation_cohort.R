@@ -16,7 +16,7 @@ load("/Volumes/Data/Project_3/validation_cohort/FPKM_rel4TNBC_validationCohort_n
 load("/Volumes/Data/Project_3/validation_cohort/PurBeta_adjustedTumor_betaMatrix_V1_V2_reduced_717459commonCpGs_TNBCs_n136.RData")
 
 # Defining gene-cpg dictionary
-load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 
 # Generate obkects for genes linked to CpGs
 genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
@@ -31,7 +31,7 @@ names(genes) <- annoObj$illuminaID
 
 
 # Object name: SCANBrel4_rdata
-load("/Users/isasiain/PhD/Projects/project_3/data/SCANBrel4valcohort_annotations.RData") 
+load("/Users/in2245sa/PhD/Projects/project_3/data/SCANBrel4valcohort_annotations.RData") 
 rownames(SCANBrel4_rdata) <- SCANBrel4_rdata$id
 
 # Reading cassettes detected in discovery cohort
@@ -127,6 +127,7 @@ for (current_gene_id in gene_ids) {
   
   # Plotting heatmaps
   list_of_heatmaps[[current_gene_id]] <- Heatmap(beta.adjusted[names(cpgs)[names(cpgs) %in% rownames(beta.adjusted)],],
+          col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
           column_split = promoter_state,
           show_column_names = FALSE,
           show_row_names = FALSE,
@@ -146,7 +147,7 @@ for (current_gene_id in gene_ids) {
   
 }
 
-list_of_heatmaps[[5]]
+list_of_heatmaps
 
 #
 # PLOTTING TILEPLOT OF PROMOTER HYPERMETHYLATION OF SELECTED GENES
@@ -322,6 +323,7 @@ column_annotation <- HeatmapAnnotation(PAM50 = pam50_annotation,
 
 # Plotting heatmap
 Heatmap(beta.adjusted[cpgs_of_interest,],
+        col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
         column_split = promoter_state,
         show_column_names = FALSE,
         show_row_names = FALSE,

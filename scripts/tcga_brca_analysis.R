@@ -9,8 +9,8 @@ library(ggplot2)
 
 # TCGA-BRCA data
 tcga <- new.env()
-load("/Users/isasiain/PhD/Projects/project_3/data/tcga_brca_withAnnotations.RData", envir = tcga)
-load("/Users/isasiain/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype.RData", envir = tcga)
+load("/Users/in2245sa/PhD/Projects/project_3/data/tcga_brca_withAnnotations.RData", envir = tcga)
+load("/Users/in2245sa/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype.RData", envir = tcga)
 
 # SCANB TNBC discovery cohort
 scanb <- new.env()
@@ -85,7 +85,7 @@ top_annotation <- HeatmapAnnotation(
 )
 
 # Define PNG file
-png("/Users/isasiain/PhD/Manuscripts/methylation_dynamics/plots_for_figures/fig_3/tcga_heatmap.png",
+png("/Users/in2245sa/PhD/Manuscripts/methylation_dynamics/plots_for_figures/fig_3/tcga_heatmap.png",
     width = 6000,   # width in pixels
     height = 8000,  # height in pixels
     res = 800)      # resolution in dpi
@@ -93,6 +93,7 @@ png("/Users/isasiain/PhD/Manuscripts/methylation_dynamics/plots_for_figures/fig_
 # Draw the heatmap
 Heatmap(
   beta_mat,
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   show_row_names = FALSE,
   show_column_names = FALSE,
   cluster_rows = FALSE,                

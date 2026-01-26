@@ -20,14 +20,14 @@ library(corrplot)
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
 # Load annotation file
-load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
 # Loading gene expression
-fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
+fpkm_data <- read.table("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
 
 # Epitype annotations
-my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
+my_annotations <- read.table("/Users/in2245sa//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
 
 # Generate obkects for genes linked to CpGs
 genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
@@ -76,7 +76,7 @@ top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                     col = list(
                                       "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
                                       "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
-                                      "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                      "HRD"=c("High"="black", "Low/Inter"="grey"),
                                       "BRCA1_pyrosequencing"=c("0"="grey", "1"="black")
                                     )
 )
@@ -124,6 +124,7 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 # Heatmap of genes
 Heatmap(
   betaAdj[names(genes)[genes == current_gene_id],],
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   cluster_rows = FALSE,
   row_order = order(annoObj$start[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]]),
   cluster_columns = TRUE,
@@ -133,7 +134,7 @@ Heatmap(
   column_split = promoter_state,
   top_annotation = top_annotation,
   bottom_annotation = bottom_annotation,
-  right_annotation = right_annotation,
+  #right_annotation = right_annotation,
   left_annotation = left_annotation,
   clustering_distance_columns = "euclidean",
   clustering_method_columns = "ward.D2",

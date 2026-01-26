@@ -1,6 +1,8 @@
-#! usr/bin/Rscript
+#!usr/bin/Rscript
 
 library(missMethyl)
+library(ggplot2)
+library(patchwork)
 
 #
 # LOADING DATA
@@ -11,9 +13,23 @@ proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cass
 
 hallmark <- readRDS(url("http://bioinf.wehi.edu.au/MSigDB/v7.1/Hs.h.all.v7.1.entrez.rds"))
 
+# Load annotation file
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+rownames(x) <- x$PD_ID
+
+# Create a new grouped feature class
+annoObj$CpG_context <- feature_class_grouped <- dplyr::case_when(
+  annoObj$featureClass %in% c("distal", "distal body") ~ "Distal",
+  annoObj$featureClass %in% c("promoter") ~ "Promoter",
+  annoObj$featureClass %in% c("proximal dn", "proximal up") ~ "Proximal",
+  TRUE ~ as.character(annoObj$featureClass) 
+)
+
 #
 # PERFORMING GO ENRICHMENT ANALYSIS PER CASSETTE
 #
+
+# PROMOTER
 
 list_of_go <- list()
 
@@ -21,11 +37,40 @@ list_of_go <- list()
 for (cassette in 1:60) {
 
   # Getting CpGs from cassette
-  cpg_subset <- names(proximal_10$colors)[proximal_10$colors == cassette]
+  cpg_subset <- names(promoter_10$colors)[promoter_10$colors == cassette]
 
   # Performing GO enrichment
   list_of_go[[cassette]] <- gometh(
     cpg_subset,
+    all.cpg = annoObj[annoObj$CpG_context == "Promoter", "illuminaID"],
+    collection = "go",
+    array.type = "EPIC",
+    plot.bias = FALSE,
+    prior.prob = TRUE,
+    equiv.cpg = TRUE,
+    fract.counts = TRUE,
+    genomic.features = "ALL",
+    sig.genes = FALSE
+  )
+}
+
+# Saving output
+saveRDS(list_of_go, "PhD/Projects/project_3/analysis/GO_enrichment_promoter_10.rds")
+
+# PROXIMAL
+
+list_of_go <- list()
+
+# Performing GO enrichment per cassette CpGs. 
+for (cassette in 1:60) {
+  
+  # Getting CpGs from cassette
+  cpg_subset <- names(proximal_10$colors)[proximal_10$colors == cassette]
+  
+  # Performing GO enrichment
+  list_of_go[[cassette]] <- gometh(
+    cpg_subset,
+    all.cpg = annoObj[annoObj$CpG_context == "Proximal", "illuminaID"],
     collection = "go",
     array.type = "EPIC",
     plot.bias = FALSE,
@@ -45,6 +90,37 @@ saveRDS(list_of_go, "PhD/Projects/project_3/analysis/GO_enrichment_proximal_10.r
 # PERFORMING HALLMARK ENRICHMENT ANALYSIS PER CASSETTE
 #
 
+# PROMOTER
+
+
+list_of_hallmarks <- list()
+
+for (cassette in 1:60) {
+  
+  # Getting CpGs from cassette
+  cpg_subset <- names(promoter_10$colors)[promoter_10$colors == cassette]
+  
+  # Performing GO enrichment
+  list_of_hallmarks[[cassette]] <- gsameth(
+    cpg_subset,
+    all.cpg = annoObj[annoObj$CpG_context == "Promoter", "illuminaID"],
+    collection = hallmark,
+    array.type = "EPIC",
+    plot.bias = FALSE,
+    prior.prob = TRUE,
+    equiv.cpg = TRUE,
+    fract.counts = TRUE,
+    genomic.features = "ALL",
+    sig.genes = FALSE
+  )
+}
+
+# Saving output
+saveRDS(list_of_hallmarks, "PhD/Projects/project_3/analysis/hallmark_enrichment_promoter_10.rds")
+
+
+# PROXIMAL
+
 list_of_hallmarks <- list()
 
 # Performing GO enrichment per cassette CpGs. Using first 140 CpGs (More than 10 CpGs)
@@ -56,6 +132,7 @@ for (cassette in 1:60) {
   # Performing GO enrichment
   list_of_hallmarks[[cassette]] <- gsameth(
     cpg_subset,
+    all.cpg = annoObj[annoObj$CpG_context == "Proximal", "illuminaID"],
     collection = hallmark,
     array.type = "EPIC",
     plot.bias = FALSE,
@@ -75,17 +152,48 @@ saveRDS(list_of_hallmarks, "PhD/Projects/project_3/analysis/hallmark_enrichment_
 # PERFORMING KEGG ENRICHMENT ANALYSIS PER CASSETTE
 #
 
+# PROMOTER
+list_of_kegg <- list()
+
+# Performing enrichment per cassette CpGs. Using first 140 CpGs (More than 10 CpGs)
+for (cassette in 1:60) {
+  
+  # Getting CpGs from cassette
+  cpg_subset <- names(promoter_10$colors)[promoter_10$colors == cassette]
+  
+  # Performing GO enrichment
+  list_of_kegg[[cassette]] <- gometh(
+    cpg_subset,
+    all.cpg = annoObj[annoObj$CpG_context == "Promoter", "illuminaID"],
+    collection = "kegg",
+    array.type = "EPIC",
+    plot.bias = FALSE,
+    prior.prob = TRUE,
+    equiv.cpg = TRUE,
+    fract.counts = TRUE,
+    genomic.features = "ALL",
+    sig.genes = FALSE
+  )
+}
+
+# Saving output
+saveRDS(list_of_kegg, "PhD/Projects/project_3/analysis/kegg_enrichment_promoter_10.rds")
+
+
+# PROXIMAL
+
 list_of_kegg <- list()
 
 # Performing GO enrichment per cassette CpGs. Using first 140 CpGs (More than 10 CpGs)
-for (cassette in 1:60) {
+for (cassette in 1:3) {
 
   # Getting CpGs from cassette
-  cpg_subset <- names(proximal_10$colors)[proximal_10$colors %in% c(1,3)]
+  cpg_subset <- names(proximal_10$colors)[proximal_10$colors == cassette]
 
   # Performing GO enrichment
   list_of_kegg[[cassette]] <- gometh(
     cpg_subset,
+    #all.cpg = annoObj[annoObj$CpG_context == "Proximal", "illuminaID"],
     collection = "kegg",
     array.type = "EPIC",
     plot.bias = FALSE,
@@ -111,15 +219,70 @@ list_of_kegg_proximal <- readRDS("PhD/Projects/project_3/analysis/kegg_enrichmen
 list_of_hallmarks_promoter <- readRDS("PhD/Projects/project_3/analysis/hallmark_enrichment_promoter_10.rds")
 list_of_hallmarks_proximal <- readRDS("PhD/Projects/project_3/analysis/hallmark_enrichment_proximal_10.rds")
 
-#
-# PLOTTING
-#
+list_of_go_promoter <- readRDS("PhD/Projects/project_3/analysis/GO_enrichment_promoter_10.rds")
 
+#
+# PLOTTING PROMOTER
+#
 
 # KEGG
 
 # Cassette 1
-kegg_df <- list_of_kegg_proximal[[3]] 
+kegg_df <- list_of_kegg_promoter[[1]] 
+kegg_df <- kegg_df[kegg_df$FDR <= 0.05,]
+
+kegg_df <- kegg_df[order(kegg_df$FDR, decreasing = TRUE),]
+kegg_df$Description <- factor(kegg_df$Description, levels = kegg_df$Description)
+
+
+kegg_cas_1 <- ggplot(kegg_df, aes(x = -log10(FDR), y = Description)) +
+  geom_point(aes(size = DE/N), color = "black") +
+  xlim(1, 16) +
+  scale_size_continuous(limits = c(0, 0.5), breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) +
+  theme_bw() +
+  labs(
+    x = "-log10(FDR p value)",
+    y = "KEGG Pathways",
+    size = "Gene Ratio"
+  )
+
+# HALLMARKS
+
+# Cassette 1
+hallmarks_df <- list_of_hallmarks_promoter[[1]]
+hallmarks_df <- hallmarks_df[hallmarks_df$FDR <= 0.05,]
+
+formatted_rownames <- tolower(gsub("_", " ", gsub("^HALLMARK_", "", rownames(hallmarks_df))))
+formatted_rownames <- sub("^([a-z])", "\\U\\1", formatted_rownames, perl = TRUE)
+
+hallmarks_df$Description <- formatted_rownames
+
+hallmarks_df <- hallmarks_df[order(hallmarks_df$FDR, decreasing = TRUE),]
+hallmarks_df$Description <- factor(hallmarks_df$Description, levels = hallmarks_df$Description)
+
+
+hallmarks_cas_1 <- ggplot(hallmarks_df, aes(x = -log10(FDR), y = Description)) +
+  geom_point(aes(size = DE/N), color = "black") +
+  xlim(1, 16) +
+  scale_size_continuous(limits = c(0, 0.5), breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) +
+  theme_bw() +
+  labs(
+    x = "-log10(FDR p value)",
+    y = "Hallmarks",
+    size = "Gene Ratio"
+  )
+
+kegg_cas_1 / hallmarks_cas_1 +
+  plot_layout(heights = c(10, 2), guides = "collect") &
+  theme(legend.position = "bottom")
+
+
+#
+# PLOTTING PROXIMAL
+#
+
+# Cassette 1
+kegg_df <- list_of_kegg_proximal[[1]] 
 kegg_df <- kegg_df[kegg_df$FDR <= 0.05,]
 
 kegg_df <- kegg_df[order(kegg_df$FDR, decreasing = TRUE),]
@@ -129,7 +292,7 @@ kegg_df$Description <- factor(kegg_df$Description, levels = kegg_df$Description)
 kegg_cas_1 <- ggplot(kegg_df, aes(x = -log10(FDR), y = Description)) +
   geom_point(aes(size = DE/N), color = "black") +
   xlim(1, 6) +
-  scale_size_continuous(limits = c(0, 0.4), breaks = c(0, 0.1, 0.2, 0.3, 0.4)) +
+  scale_size_continuous(limits = c(0, 0.5), breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) +
   theme_bw() +
   labs(
     x = "-log10(FDR p value)",
@@ -137,12 +300,10 @@ kegg_cas_1 <- ggplot(kegg_df, aes(x = -log10(FDR), y = Description)) +
     size = "Gene Ratio"
   )
 
-
-
 # HALLMARKS
 
 # Cassette 1
-hallmarks_df <- list_of_hallmarks_proximal[[3]]
+hallmarks_df <- list_of_hallmarks_proximal[[1]]
 hallmarks_df <- hallmarks_df[hallmarks_df$FDR <= 0.05,]
 
 formatted_rownames <- tolower(gsub("_", " ", gsub("^HALLMARK_", "", rownames(hallmarks_df))))
@@ -157,7 +318,7 @@ hallmarks_df$Description <- factor(hallmarks_df$Description, levels = hallmarks_
 hallmarks_cas_1 <- ggplot(hallmarks_df, aes(x = -log10(FDR), y = Description)) +
   geom_point(aes(size = DE/N), color = "black") +
   xlim(1, 6) +
-  scale_size_continuous(limits = c(0, 0.4), breaks = c(0, 0.1, 0.2, 0.3, 0.4)) +
+  scale_size_continuous(limits = c(0, 0.5), breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5)) +
   theme_bw() +
   labs(
     x = "-log10(FDR p value)",
@@ -170,27 +331,25 @@ kegg_cas_1 / hallmarks_cas_1 +
   theme(legend.position = "bottom")
 
 
-# GO
+#
+# GO ENRICHMENT OF IMMUNE CASSETTE
+#
 
 # Cassette 1
-GO_df <- list_of_go[[3]]
-GO_df <- GO_df[GO_df$FDR <= 0.05,]
+go_df <- list_of_go_promoter[[10]]
+go_df <- go_df[go_df$FDR <= 0.05,]
 
-# Capitalize first letter
-GO_df$TERM <- sub("^([a-z])", "\\U\\1", GO_df$TERM, perl = TRUE)
-
-# Sorting
-GO_df <- GO_df[order(GO_df$FDR, decreasing = TRUE),]
-GO_df$TERM <- factor(GO_df$TERM, levels = GO_df$TERM)
+go_df <- go_df[order(go_df$FDR, decreasing = TRUE),]
+go_df$Description <- factor(go_df$TERM, levels = go_df$TERM)
 
 
-ggplot(GO_df, aes(x = -log10(FDR), y = TERM)) +
+ggplot(go_df, aes(x = -log10(FDR), y = Description)) +
   geom_point(aes(size = DE/N), color = "black") +
-  scale_size_continuous(limits = c(0, 0.4), breaks = c(0, 0.1, 0.2, 0.3, 0.4)) +
+  xlim(1, 4) +
+  scale_size_continuous(limits = c(0, 0.2), breaks = c(0, 0.1, 0.2)) +
   theme_bw() +
   labs(
     x = "-log10(FDR p value)",
     y = "GO terms",
     size = "Gene Ratio"
   )
-

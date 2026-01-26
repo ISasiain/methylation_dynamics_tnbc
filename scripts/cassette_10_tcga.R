@@ -1,6 +1,7 @@
 #! usr/bin/Rscript
 
 library(ComplexHeatmap)
+library(circlize)
 library(ggplot2)
 library(ggpubr)
 library(clusterProfiler)
@@ -19,8 +20,8 @@ set.seed(07102000)
 
 # TCGA-BRCA data
 tcga <- new.env()
-load("/Users/isasiain/PhD/Projects/project_3/data/tcga_brca_withAnnotations.RData", envir = tcga)
-load("/Users/isasiain/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype.RData", envir = tcga)
+load("/Users/in2245sa/PhD/Projects/project_3/data/tcga_brca_withAnnotations.RData", envir = tcga)
+load("/Users/in2245sa/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype.RData", envir = tcga)
 tcga$annoObj[, "featureClass"] <- sapply(tcga$annoObj[, "featureClass"], function(val) {
   if (val == "distal" | val == "distal body") {"Distal"}
   else if (val == "proximal dn" | val == "proximal up") {"Proximal"}
@@ -41,7 +42,7 @@ scanb$annoObj[, "featureClass"] <- sapply(scanb$annoObj[, "featureClass"], funct
 promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
 # Reading in silico TILs
-tcga_tils <- read.csv2("/Users/isasiain/PhD/Projects/project_3/data/tcga_tils_from_mpath.csv", skip = 1)
+tcga_tils <- read.csv2("/Users/in2245sa/PhD/Projects/project_3/data/tcga_tils_from_mpath.csv", skip = 1)
 tcga_tils$sample_id <- sub("^([A-Z0-9-]+?-[A-Z0-9]+-[A-Z0-9]+)-.*$", "\\1", tcga_tils$Biospecimen_barcode)
 
 # LINKING TCGA SAMPLES TO IN SILICO TILS
@@ -54,7 +55,7 @@ cpgs_10 <- names(promoter_10$colors)[promoter_10$colors == 10]
 cpgs_10 <- cpgs_10[cpgs_10 %in% rownames(tcga$betaAdj)]
 
 # PAM50 annotations (my.pam50.subtype)
-load("/Users/isasiain/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype_TCGA.RData")
+load("/Users/in2245sa/PhD/Projects/project_3/data/jvc_PAM50_NCN_subtype_TCGA.RData")
 
 
 #
@@ -176,6 +177,7 @@ top_annotation <- HeatmapAnnotation(
 # Plotting heatmap
 Heatmap(
   beta_mat,
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   column_split = cluster_label,
   show_column_names = FALSE,
   show_row_names = FALSE,
@@ -286,7 +288,7 @@ for (gene in genes) {
     )
   )
   
-  bottom_annotation <- HeatmapAnnotation(TILs = anno_barplot(tils_df[colnames(beta_mat), "GEX"]))
+  bottom_annotation <- HeatmapAnnotation("FPKM" = anno_barplot(tils_df[colnames(beta_mat), "GEX"]))
   
 
   
@@ -300,6 +302,7 @@ for (gene in genes) {
   # Plotting heatmap
   list_of_heatmaps[[gene]] <- Heatmap(
     betas_to_plot,
+    col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
     column_split = cluster_label,
     show_column_names = FALSE,
     show_row_names = FALSE,
@@ -332,7 +335,6 @@ wrap_plots(heatmap_grobs, ncol = 4)
 #
 # ANALYSES IN ALL BRCA
 #
-
 
 # Subset the beta matrix
 beta_mat <- tcga$betaAdj[cpgs_10, ,drop=FALSE]
@@ -400,6 +402,7 @@ top_annotation <- HeatmapAnnotation(
 # Plotting heatmap
 Heatmap(
   beta_mat,
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   column_split = cluster_label,
   show_column_names = FALSE,
   show_row_names = FALSE,
@@ -484,6 +487,7 @@ for (gene in genes) {
   
   list_of_heatmaps[[gene]]<- Heatmap(
     betas_to_plot,
+    col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
     column_split = cluster_label[colnames(beta_mat)],
     show_column_names = FALSE,
     show_row_names = FALSE,
@@ -564,6 +568,7 @@ for (gene in genes) {
   (list_of_tils_plots$OAS2$Basal | list_of_tils_plots$OAS2$Her2 | list_of_tils_plots$OAS2$LumA  | list_of_tils_plots$OAS2$LumB | list_of_tils_plots$OAS2$Normal)/
   (list_of_tils_plots$ZBP1$Basal | list_of_tils_plots$ZBP1$Her2 | list_of_tils_plots$ZBP1$LumA  | list_of_tils_plots$ZBP1$LumB | list_of_tils_plots$ZBP1$Normal)
 
+
 # Plotting GEX vs subtype and gene methylation
 (list_of_gex_plots$CARD16$Basal | list_of_gex_plots$CARD16$Her2 | list_of_gex_plots$CARD16$LumA  | list_of_gex_plots$CARD16$LumB | list_of_gex_plots$CARD16$Normal)/
   (list_of_gex_plots$GBP4$Basal | list_of_gex_plots$GBP4$Her2 | list_of_gex_plots$GBP4$LumA  | list_of_gex_plots$GBP4$LumB | list_of_gex_plots$GBP4$Normal)/
@@ -585,7 +590,7 @@ ggplot(pie_data, aes(x = "", y = Proportion, fill = State)) +
   coord_polar(theta = "y") +
   facet_grid(Gene ~ PAM50) +
   scale_fill_manual(
-    values = c("Hypo." = "steelblue", "Hyper." = "indianred1"),
+    values = c("Hypo." = "#5F4B8B", "Hyper." = "#C9A441"),
     name = NULL
   ) +
   theme_void(base_size = 14) +
@@ -638,11 +643,11 @@ c_matrix <- make_comb_mat(matrix_upset)
 # Plot UpSet plot
 comb_sets = lapply(comb_name(c_matrix), function(nm) extract_comb(c_matrix, nm))
 
-cols_for_plot <- setNames(c("indianred1",
-           "#C295AF", "#C295AF", "#C295AF","#C295AF",
+cols_for_plot <- setNames(c("#C9A441",
+           "#E8D89A", "#E8D89A", "#E8D89A","#E8D89A",
            "black","black","black","black","black", "black",
-           "#A0A8D1", "#A0A8D1", "#A0A8D1", "#A0A8D1",
-           "steelblue"),
+           "#B9B2D8", "#B9B2D8", "#B9B2D8", "#B9B2D8",
+           "#5F4B8B"),
          comb_name(c_matrix))
 
 

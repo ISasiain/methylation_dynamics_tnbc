@@ -1,10 +1,12 @@
 #! usr/bin/Rscript
 
 library(Seurat)
+library(presto)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(reshape2)
+library(patchwork)
 
 #
 # Loading data
@@ -54,6 +56,8 @@ gene_expression <- DotPlot(
     midpoint = 0
   )
 
+gene_expression
+
 # STROMAL AND IMMUNE CELLS PER SAMPLE
 cell_types <- c("0"="T cells", "1"="Macrophagues", "2"="Plasma cells", "3"="Fibroblasts", "4"="T cells","5"="B cells", "6"="Dendritic cells", "7"="Endothelial cells", "8"="Pericytes", "9"="Myeloid cells")
 
@@ -88,26 +92,3 @@ composition_of_microenvironment <- ggplot(cell_type_counts_long, aes(x = Var1, y
 (gene_expression | composition_of_microenvironment) + 
   plot_layout(widths = c(1, 1.75), guides = "collect") &
   theme(legend.position = "right")
-
-
-# T CELL SUBTYPES
-
-cell_types <- c("0"="Effector T cells", "1"="Naive/resting T cells", "2"="Regulatory T cells", "3"="Cycling T cells", "4"="TR cells (memory)","5"="NK cells", "6"="Plasma")
-
-
-cell_type_counts <- t(prop.table(table(only_tc$group, cell_types[only_tc$seurat_clusters]), margin=1))
-
-# Convert to long format for plotting
-cell_type_counts_long <- melt(cell_type_counts)
-
-# Plotting
-ggplot(cell_type_counts_long, aes(x = Var1, y = Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +  # Midpoint set to 0
-  labs(x = "Group", y = "Cell Type", fill = "Scaled cell counts") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels if needed
-  geom_text(aes(label = round(value, 2)), color = "black", size = 3)  # Add numbers inside the tiles
-
-
-DotPlot(only_tc, features = c("PDCD1", "CTLA4", "HAVCR2", "LAG3", "TIGIT", "MKI67"), group.by = "group", assay = "RNA")

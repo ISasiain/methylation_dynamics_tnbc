@@ -26,7 +26,7 @@ promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cass
 cpgs_in_cassette <- names(promoter_10$colors)[promoter_10$colors == 10]
 
 
-gene_of_interest <- "GBP4"
+gene_of_interest <- "SAMD9L"
 gene_of_interest_ensembl <- celline.data.list$GEXanno[celline.data.list$GEXanno$Gene.Name == gene_of_interest, "Gene.ID"]
 
 # Generating heatmap annotations
@@ -66,6 +66,8 @@ row_annot <- rowAnnotation(
 
 Heatmap(
   celline.data.list$Beta[names(genes)[genes == gene_of_interest], ],
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
+  name="Beta",
   column_split = types,
   show_row_names = FALSE,
   show_column_names = FALSE,

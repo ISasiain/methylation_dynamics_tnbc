@@ -19,7 +19,7 @@ library(reshape2)
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
 # Load annotation file
-load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
 # Create a new grouped feature class
@@ -33,26 +33,26 @@ annoObj$CpG_context <- feature_class_grouped <- dplyr::case_when(
 # PROMOTER
 promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
 
-summary_prom10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
+summary_prom10 <- read.csv("/Users/in2245sa/PhD/Projects/project_3/analysis/promoter_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(summary_prom10) <- as.character(summary_prom10$Cassette)
 summary_prom10$Cassette <- NULL
 
 # DISTAL
 distal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/cassettes_beta_10.rds")
 
-summary_dis10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
+summary_dis10 <- read.csv("/Users/in2245sa/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(summary_dis10) <- as.character(summary_dis10$Cassette)
 summary_dis10$Cassette <- NULL
 
 # PROXIMAL
 proximal_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_10.rds")
 
-summary_prox10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_10.csv")
+summary_prox10 <- read.csv("/Users/in2245sa/PhD/Projects/project_3/analysis/proximal_cassettes/summary_cassettes/summary_beta_10.csv")
 rownames(summary_prox10) <- as.character(summary_prox10$Cassette)
 summary_prox10$Cassette <- NULL
 
 # FPKM counts
-fpkm_data <- read.table("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
+fpkm_data <- read.table("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/gexFPKM_unscaled.csv")
 
 # Generate obkects for genes linked to CpGs
 genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
@@ -66,7 +66,7 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 names(genes) <- annoObj$illuminaID
 
 # Epitype annotations
-my_annotations <- read.table("/Users/isasiain//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
+my_annotations <- read.table("/Users/in2245sa//PhD/Projects/immune_spatial/ecosystem_analysis/data/nmfClusters_groupVariablesWithAnno_3groupBasal_2groupNonBasal_byAtac_bySd.txt", sep = "\t")
 
 
 #
@@ -347,11 +347,12 @@ for (gene in genes_in_cassette) {
     expr_group2 <- as.numeric(fpkm_subset_2[gene, ])
     
     # Wilcoxon test
-    test_result <- wilcox.test(expr_group1, expr_group2, exact = FALSE)
+    test_result <- wilcox.test(expr_group2, expr_group1, exact = FALSE)
     
-    # Compute median difference
-    log_fold_change <- calculate_logFC(expr_group1, expr_group2)
-    
+    # Compute log FC
+    log_fold_change <- mean(log2(expr_group2 + 1)) -
+      mean(log2(expr_group1 + 1))
+
     # Store results
     results[results$Gene == gene, "Wilcoxon_p"] <- test_result$p.value
     results[results$Gene == gene, "Log2_fold_change"] <- log_fold_change
@@ -445,8 +446,9 @@ for (gene in genes_in_cassette) {
     # Wilcoxon test
     test_result <- wilcox.test(expr_group1, expr_group2, exact = FALSE)
     
-    # Compute median difference
-    log_fold_change <- calculate_logFC(expr_group1, expr_group2)
+    # Compute log FC
+    log_fold_change <- mean(log2(expr_group2 + 1)) -
+      mean(log2(expr_group1 + 1))
     
     # Store results
     results[results$Gene == gene, "Wilcoxon_p"] <- test_result$p.value
@@ -524,19 +526,19 @@ current_gene_id = "LDHB"
 # Create top anotation
 top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                     TNBC = tnbc_annotation,
-                                    HRD = HRD_annotation,
+                                    #HRD = HRD_annotation,
                                     Epitype = epi_annotation,
-                                    TILs = anno_points(tils_annotation,
-                                                       ylim=c(0,100),
-                                                       size=unit(0.75, "mm"),
-                                                       axis_param = list(
-                                                         side="left",
-                                                         at=c(0,25,50,75,100),
-                                                         labels=c("0","25","50","75","100")
-                                                       )),
+                                    # TILs = anno_points(tils_annotation,
+                                    #                    ylim=c(0,100),
+                                    #                    size=unit(0.75, "mm"),
+                                    #                    axis_param = list(
+                                    #                      side="left",
+                                    #                      at=c(0,25,50,75,100),
+                                    #                      labels=c("0","25","50","75","100")
+                                    #                    )),
                                     col = list(
                                       "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
-                                      "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                      "HRD"=c("High"="black", "Low/Inter"="grey"),
                                       "IM"=c("Negative"="grey", "Positive"="black"),
                                       "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
                                       "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
@@ -587,6 +589,7 @@ promoter_state <- if (mean(betaAdj[names(cpgs)[cpgs=="promoter"],cluster_promote
 # Heatmap of genes
 Heatmap(
   betaAdj[names(genes)[genes == current_gene_id],],
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   cluster_columns = TRUE,
   show_row_names = FALSE,
   show_column_names = FALSE,
@@ -594,7 +597,7 @@ Heatmap(
   column_split = promoter_state,
   top_annotation = top_annotation,
   bottom_annotation = bottom_annotation,
-  right_annotation = right_annotation,
+  #right_annotation = right_annotation,
   left_annotation = left_annotation,
   clustering_distance_columns =  "euclidean",
   clustering_method_columns = "ward.D2",
@@ -611,19 +614,19 @@ current_gene_id = "SPINK8"
 # Create top anotation
 top_annotation <- HeatmapAnnotation(PAM50 = pam50_annotations,
                                     TNBC = tnbc_annotation,
-                                    HRD = HRD_annotation,
+                                    #HRD = HRD_annotation,
                                     Epitype = epi_annotation,
-                                    TILs = anno_points(tils_annotation,
-                                                       ylim=c(0,100),
-                                                       size=unit(0.75, "mm"),
-                                                       axis_param = list(
-                                                         side="left",
-                                                         at=c(0,25,50,75,100),
-                                                         labels=c("0","25","50","75","100")
-                                                       )),
+                                    # TILs = anno_points(tils_annotation,
+                                    #                    ylim=c(0,100),
+                                    #                    size=unit(0.75, "mm"),
+                                    #                    axis_param = list(
+                                    #                      side="left",
+                                    #                      at=c(0,25,50,75,100),
+                                    #                      labels=c("0","25","50","75","100")
+                                    #                    )),
                                     col = list(
                                       "PAM50"=c("Basal"="indianred1", "Non-Basal"="darkblue","Uncl."="grey"),
-                                      "HRD"=c("High"="darkred", "Low/Inter"="lightcoral"),
+                                      "HRD"=c("High"="black", "Low/Inter"="grey"),
                                       "IM"=c("Negative"="grey", "Positive"="black"),
                                       "TNBC"=c("BL1"="red", "BL2"="blue", "LAR"="green", "M"="grey"),
                                       "Epitype"=c("Basal1" = "tomato4", "Basal2" = "salmon2", "Basal3" = "red2", 
@@ -639,7 +642,7 @@ bottom_annotation <- HeatmapAnnotation(
 right_annotation <- rowAnnotation(
   "Normal beta" = rowMeans(betaNorm[names(genes)[genes == current_gene_id],]),
   #"ATAC" = annoObj$hasAtacOverlap[annoObj$illuminaID %in% names(genes)[genes == current_gene_id]],
-  col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("darkblue", "white", "darkred")),
+  col = list("Normal beta" = colorRamp2(c(0, 0.5, 1), c("#3F2F66", "#F5F5F2", "#9C7C1F")),
              "ATAC" = c("0" = "white", "1"= "black"))
 )
 
@@ -674,6 +677,7 @@ proximal_state <- if (mean(betaAdj[names(cpgs)[cpgs=="proximal up" | cpgs=="prox
 # Heatmap of genes
 Heatmap(
   betaAdj[names(genes)[genes == current_gene_id],],
+  col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
   cluster_columns = TRUE,
   show_row_names = FALSE,
   show_column_names = FALSE,
@@ -681,7 +685,7 @@ Heatmap(
   column_split = proximal_state,
   top_annotation = top_annotation,
   bottom_annotation = bottom_annotation,
-  right_annotation = right_annotation,
+  #right_annotation = right_annotation,
   left_annotation = left_annotation,
   clustering_distance_columns =  "euclidean",
   clustering_method_columns = "ward.D2",

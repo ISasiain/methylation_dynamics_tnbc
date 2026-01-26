@@ -6,7 +6,7 @@ library(ggplot2)
 library(patchwork)
 
 # Load data
-dist_summary_10 <- read.csv("/Users/isasiain/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
+dist_summary_10 <- read.csv("/Users/in2245sa/PhD/Projects/project_3/analysis/distal_cassettes/summary_of_cassettes/summary_beta_10.csv")
 rownames(dist_summary_10) <- dist_summary_10$Cassette
 dist_summary_10$Cassette <- NULL
 
@@ -16,7 +16,7 @@ dist_cassette_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/distal/c
 load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
 
 # Load annotation file
-load("/Users/isasiain/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
 x <- x[colnames(betaAdj), ]
@@ -28,11 +28,18 @@ x <- x[colnames(betaAdj), ]
 
 # Define column annotation
 pc1_annotation <- HeatmapAnnotation(
-  "PC1" = as.numeric(dist_summary_10["1", colnames(betaAdj)])
+  PC1 = as.numeric(dist_summary_10["1", colnames(betaAdj)]),
+  col = list(
+    PC1 = colorRamp2(
+      c(min(as.numeric(dist_summary_10["1", colnames(betaAdj)])), 0, max(as.numeric(dist_summary_10["1", colnames(betaAdj)]))),
+      c("#A6C8E4", "#FFFFFF", "#F4A6A6")  # light red → white → light blue
+    )
+  )
 )
 
 # Plotting heatmap
 Heatmap(betaAdj[names(dist_cassette_10$colors)[dist_cassette_10$colors == 1],], 
+        col=colorRamp2(c(0, 0.5, 1), c("#5F4B8B", "#F5F5F2", "#C9A441")),
         use_raster = F,
         show_row_dend = F, 
         show_column_names = F, 
