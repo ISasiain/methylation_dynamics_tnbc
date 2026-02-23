@@ -1,0 +1,144 @@
+#! usr/bin/Rscript
+
+if (!requireNamespace("WGCNA", quietly = TRUE)) {
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install("WGCNA")
+}
+
+library(WGCNA)
+
+
+#
+# Loading the data
+#
+
+# Loading EPIC methylation matrix
+load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
+
+# Load annotation file
+load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+rownames(x) <- x$PD_ID
+
+#
+# Preprocessing
+#
+
+# CpG context
+
+# Getting proximal CpGs
+
+# All
+proximal_cpgs <- annoObj$illuminaID[which((annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) ]
+
+## ATAC only
+#proximal_cpgs <- annoObj$illuminaID[which( (annoObj$hasAtacOverlap & (annoObj$featureClass=="proximal up") | (annoObj$featureClass=="proximal dn") ) )]
+
+proximal_betas <- betaAdj[rownames(betaAdj) %in% proximal_cpgs, ]
+
+# Filtering based on variance
+
+# Getting most variables CpGs
+variance_prox <- sapply(1:nrow(proximal_betas), FUN = function(row) {var(proximal_betas[row,])})
+
+# Plotting variance
+plot(density(variance_dis))
+abline(v=0.05)
+
+# Filtering data
+#selected_var <- sort(variance_prox, decreasing = T)[33536] # Using this to find an equivalent variance to the selected one in adjusted betas
+selected_var <- 0.05
+prox_to_analyse <- t(proximal_betas[variance_prox > selected_var,])
+
+# Converting to M values
+eps <- 0.01
+prox_to_analyse <- pmin(pmax(prox_to_analyse, eps), 1 - eps)
+
+# Transform to M-values
+prox_to_analyse <- log2(prox_to_analyse / (1 - prox_to_analyse))
+
+#
+# Running WGCNA
+#
+
+# Running WGCNA
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to = 30, by = 2))
+
+# Call the network topology analysis function
+sft = pickSoftThreshold(
+  prox_to_analyse,
+  powerVector = powers,
+  verbose = 5, 
+  networkType = "unsigned"
+  
+)
+
+# Plotting
+par(mfrow = c(1,2))
+cex1 = 0.9
+
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit, signed R^2",
+     main = paste("Scale independence")
+)
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers, cex = cex1, col = "red"
+)
+abline(h = 0.80, col = "red")
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
+     main = paste("Mean connectivity")
+)
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1, col = "red")
+
+
+# Running WGCNA
+
+betas <- c(5,6,7,8,10,15)
+cor = WGCNA::cor
+
+for (beta in betas) {
+    
+    # Calculating CpG cassettes based on WGCNA
+    
+    netwk <- blockwiseModules(prox_to_analyse,               
+                              corType="pearson",
+                              nThreads = 10,
+                              
+                              # == Adjacency Function ==
+                              power = beta,             
+                              networkType = "unsigned", 
+                              
+                              # == Tree and Block Options ==
+                              deepSplit = 2,
+                              pamRespectsDendro = T,
+                              minModuleSize = 15,
+                              maxBlockSize = 10000,
+                              
+                              # == Module Adjustments ==
+                              reassignThreshold = 0,
+                              mergeCutHeight = 0.25,
+                              
+                              # == TOM == Archive the run results in TOM file (saves time)
+                              saveTOMs = T,
+                              saveTOMFileBase = "ER",
+                              
+                              # == Output Options
+                              numericLabels = T,
+                              verbose = 3)
+    
+    # Saving network
+    my_filename <- paste0("/Volumes/Data/Project_3/detected_cassettes/proximal/cassettes_beta_", beta, ".rds" )
+    saveRDS(netwk, file = my_filename)
+    
+}
