@@ -404,6 +404,10 @@ ggplot(go_df, aes(x = -log10(FDR), y = Description)) +
     size = "Gene Ratio"
   )
 
+#
+# GO ENRICHMENT OF BASAL-NONBASAL CASSETTES
+#
+
 go_df <- list_of_go_promoter[[1]]
 go_df <- go_df[go_df$FDR <= 0.05,]
 nrow(go_df)

@@ -60,7 +60,7 @@ df_cassettes_all <- cbind(df_cassettes_all,betaAdj[df_cassettes_all$CpG,])
 
 
 # Saving as csv files
-write.csv(df_cassettes_promoter, "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/supplementary_file_2_promo.csv")
+write.csv(df_cassettes_promoter, "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/supplementary_file_2_prom.csv")
 write.csv(df_cassettes_proximal, "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/supplementary_file_3_prox.csv")
 write.csv(df_cassettes_distal, "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/supplementary_file_4_dis.csv")
 write.csv(df_cassettes_all, "/Users/in2245sa/PhD/Projects/project_3/data/supp_data/supplementary_file_1_all.csv")
