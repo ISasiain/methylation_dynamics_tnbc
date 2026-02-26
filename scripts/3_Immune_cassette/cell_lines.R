@@ -1,6 +1,7 @@
 #! usr/bin/Rscript
 
 library(ComplexHeatmap)
+library(circlize)
 library(ggplot2)
 library(reshape2)
 library(corrplot)
@@ -16,14 +17,27 @@ gex_data_25_lines <- read.csv("PhD/Projects/project_3/data/GSE202770_TNBC_Cell_l
 # GEX + Methylation
 load("PhD/Projects/project_3/data/TNBC_8cellines_GEX_Beta.RData") #celline.datd.list
 
-promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
+promoter_7 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_7.rds")
 
+# Load EPIC + gene annotations
+load("/Volumes/Data/Project_3/TNBC_epigenetics/workspace_full_trim235_updatedSampleAnno_withNmfClusters.RData")
+
+# Generate obkects for genes linked to CpGs
+genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOverlap, function(x) {
+  if (grepl("\\|", x)) {
+    strsplit(x, "\\|")[[1]][2]
+  } else {
+    x
+  }
+})
+
+names(genes) <- annoObj$illuminaID
 
 #
 # Plotting promoters and expression
 #
 
-cpgs_in_cassette <- names(promoter_10$colors)[promoter_10$colors == 10]
+cpgs_in_cassette <- names(promoter_7$colors)[promoter_7$colors == 9]
 
 
 gene_of_interest <- "SAMD9L"
@@ -89,17 +103,23 @@ Heatmap(
 genes_of_interest <- c("GBP4", "OAS2", "ZBP1", "CARD16", "SAMD9L")
 expr_mat <- log1p(gex_data_25_lines[genes_of_interest, ])
 
+# Compute mean expression per sample (column means)
+mean_expr <- colMeans(expr_mat, na.rm = TRUE)
+
 # Reformatting names
 colnames(expr_mat) <- gsub("_RNA", "", colnames(expr_mat))
+names(mean_expr) <- gsub("_RNA", "", names(mean_expr))
 
+# Convert to long format
+df_long <- as.data.frame(expr_mat) %>%
+  tibble::rownames_to_column("Gene") %>%
+  pivot_longer(-Gene, names_to = "CellLine", values_to = "log1p_expression")
 
-# Convert to long format for ggplot
-df_long <- melt(as.matrix(expr_mat))
-colnames(df_long) <- c("Gene", "CellLine", "log1p_expression")
-
-
-# Sort CellLine by mean expression
-df_long$CellLine <- factor(df_long$CellLine, levels = names(sort(mean_expr, decreasing = TRUE)))
+# Order samples by decreasing mean expression
+df_long$CellLine <- factor(
+  df_long$CellLine,
+  levels = names(sort(mean_expr, decreasing = TRUE))
+)
 
 # Plot
 ggplot(df_long, aes(x = CellLine, y = Gene, color = log1p_expression, size = log1p_expression)) +
