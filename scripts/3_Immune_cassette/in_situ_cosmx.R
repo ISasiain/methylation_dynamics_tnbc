@@ -33,12 +33,12 @@ genes <- annoObj$nameUCSCknownGeneOverlap <- sapply(annoObj$nameUCSCknownGeneOve
 names(genes) <- annoObj$illuminaID
 
 # Load annotation file
-load("/Users/in2245sa/PhD/Projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
+load("/Volumes/Data/old_projects/immune_spatial/ecosystem_analysis/data/Updated_merged_annotations_n235_WGS_MethylationCohort.RData")
 rownames(x) <- x$PD_ID
 
 # Loading promoter cassettes
-promoter_10 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_10.rds")
-promoter_cassette_10 <- names(promoter_10$colors)[promoter_10$colors == 10]
+promoter_7 <- readRDS("/Volumes/Data/Project_3/detected_cassettes/promoter/cassettes_beta_7.rds")
+promoter_cassette_9 <- names(promoter_7$colors)[promoter_7$colors == 9]
 
 #
 # PLOT MEAN EXPRESSION OF ALL GENES (OAS2 + CONTROLS)
@@ -91,7 +91,7 @@ promoter_state <- if (mean(betaAdj[names(cpgs),cluster_promoter$cluster==1]) >
 }
 
 # Getting mean beta of CpGs linked to OAS2 in promoter cassette 10
-mean_cassette10_beta_oas2 <- colMeans(betaAdj[names(cpgs)[names(cpgs) %in% promoter_cassette_10],])
+mean_cassette9_beta_oas2 <- colMeans(betaAdj[names(cpgs)[names(cpgs) %in% promoter_cassette_9],])
 
 
 #
@@ -149,7 +149,7 @@ summary_per_tissue_12 <- oas2_per_cell_12 %>%
   )
 
 # Adding mean oas2 beta 
-summary_per_tissue_12$mean_OAS2_beta <- mean_cassette10_beta_oas2[summary_per_tissue_12$PDid]
+summary_per_tissue_12$mean_OAS2_beta <- mean_cassette9_beta_oas2[summary_per_tissue_12$PDid]
 
 #
 # ADDING COHORT COMPOSITION INFORMATION
@@ -266,51 +266,6 @@ scatter_plot <- ggplot(
 scatter_plot | (ex_plot / prop_plot )
 
 ##geom_violin()### CONTROL. Plotting AR vs Basal/NonBasal
-
-# Mean AR expression
-
-# Count number of data points per class
-counts_cores <- table(summary_per_tissue_12$PAM50)
-counts_samples <- c("Basal" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$PAM50 == "Basal","PDid"]))),
-                    "nonBasal" = nrow(na.omit(unique(summary_per_tissue_12[summary_per_tissue_12$PAM50 == "nonBasal","PDid"]))))
-
-
-labels_with_counts <- paste0(
-  "n=", counts_cores[names(counts_cores)], 
-  "\ns=", counts_samples[names(counts_cores)]
-)
-
-
-# Draw boxplot with custom x-axis labels
-boxplot(summary_per_tissue_12$mean_AR ~ summary_per_tissue_12$PAM50,
-        ylab = "Mean Expression in Tumour cells",
-        xlab = "Promoter Methylation",,
-        ylim = c(0, 2),
-        frame = FALSE)
-
-# Add the annotation
-text(x = 1:2, y = 1.7, labels = labels_with_counts, xpd = TRUE, cex = 0.8)
-
-
-# Add jittered points
-stripchart(summary_per_tissue_12$mean_AR ~ summary_per_tissue_12$PAM50,
-           method = "jitter", 
-           pch = 16,
-           cex = 0.6,
-           col = rgb(0, 0, 0, 0.5),
-           vertical = TRUE,
-           add = TRUE)
-
-# Perform Wilcoxon test
-wilcox_res <- wilcox.test(summary_per_tissue_12$mean_AR ~ summary_per_tissue_12$PAM50)
-
-# Add p-value to plot
-pval <- wilcox_res$p.value
-text(x = 1.3, 
-     y = 1.2, 
-     labels = paste0("Wilcoxon's p = ", signif(pval, 3)),
-     pos = 3, cex = 0.9)
-
 
 #
 # SAVING DATA
